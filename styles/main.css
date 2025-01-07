@@ -1,0 +1,173 @@
+:root {
+    --text-color: #ffffff;
+    --bg-color: #121212;
+    --accent-color: #666;
+    /* --link-color: #89b4fa; A nice blue for links */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Merriweather', Georgia, serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-weight: 400;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4rem;
+}
+
+.logo {
+    font-size: 2rem;
+    font-weight: bold;
+    text-decoration: none;
+    color: var(--text-color);
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.nav-links a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 1.1rem;
+    transition: color 0.3s ease; /* Smooth color transition on hover */
+}
+
+.nav-links a:hover {
+    color: var(--link-color);
+    text-decoration: underline;
+}
+
+h1 {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.intro {
+    font-size: 1.25rem;
+    margin-bottom: 4rem;
+    max-width: 800px;
+    letter-spacing: -0.011em;
+    line-height: 1.7;
+}
+
+.writing-section {
+    margin-top: 4rem;
+}
+
+.writing-section h2 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--accent-color);
+    padding-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.article {
+    margin-bottom: 2rem;
+}
+
+.article a {
+    color: var(--link-color); /* Use the link color */
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.011em;
+    transition: text-decoration 0.3s ease; /* Smooth underline transition */
+}
+
+.article a:hover {
+    text-decoration: underline;
+}
+
+.article .subtitle {
+    color: var(--accent-color);
+    font-style: italic;
+    font-size: 1.1rem;
+    letter-spacing: -0.008em;
+}
+
+.article .date {
+    color: var(--accent-color);
+    font-size: 0.9rem;
+    text-align: right;
+    font-style: italic;
+}
+
+/* --- Styles for the About Page --- */
+.publications-section {
+    margin-top: 3rem;
+}
+
+.publications-section h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--accent-color);
+    padding-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.publications-section ol {
+    list-style-type: decimal; /* Keep the numbered list */
+    padding-left: 2rem; /* Indent the list items */
+}
+
+.publications-section li {
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.publications-section li cite {
+    font-style: italic;
+    display: block; /* Make the citation a block element */
+    margin-bottom: 0.5rem;
+}
+
+.publications-section li a {
+    color: var(--link-color); /* Style the links in publications */
+    text-decoration: none;
+    transition: text-decoration 0.3s ease;
+}
+
+.publications-section li a:hover {
+    text-decoration: underline;
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem;
+    }
+
+    h1 {
+        font-size: 3rem;
+    }
+
+    .nav-links {
+        gap: 1rem;
+    }
+
+    .publications-section h2 {
+        font-size: 2rem;
+    }
+}
