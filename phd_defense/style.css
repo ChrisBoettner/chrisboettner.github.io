@@ -76,6 +76,23 @@ body {
     font-variant-emoji: emoji;
 }
 
+/* Fix number spacing issues */
+.phone-number, .date-time, .highlight-text {
+    letter-spacing: 0 !important;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Prevent awkward line breaks on mobile */
+@media (max-width: 480px) {
+    .phone-number {
+        white-space: nowrap;
+    }
+    
+    .date-time {
+        white-space: nowrap;
+    }
+}
+
 body::before {
     content: '';
     position: fixed;
@@ -680,8 +697,8 @@ img:hover {
     }
     
     .section-content p {
-        font-size: 1.05rem;
-        line-height: 1.7;
+        font-size: 1rem;
+        line-height: 1.6;
     }
     
     .image-text-layout {
@@ -753,6 +770,10 @@ img:hover {
 }
 
 @media (max-width: 480px) {
+    body {
+        font-size: 0.9rem;
+    }
+    
     .welcome-container {
         padding: 1rem;
     }
@@ -763,7 +784,7 @@ img:hover {
     }
     
     .welcome-subtitle {
-        font-size: 1rem;
+        font-size: 0.95rem;
         margin-bottom: 2rem;
     }
     
@@ -794,8 +815,8 @@ img:hover {
     }
     
     .section-content p {
-        font-size: 1rem;
-        line-height: 1.6;
+        font-size: 0.95rem;
+        line-height: 1.55;
     }
     
     .info-card {
