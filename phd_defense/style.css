@@ -76,10 +76,30 @@ body {
     font-variant-emoji: emoji;
 }
 
-/* Fix number spacing issues */
+/* Fix number spacing issues - more aggressive approach */
 .phone-number, .date-time, .highlight-text {
     letter-spacing: 0 !important;
     font-variant-numeric: tabular-nums;
+}
+
+/* Target numbers specifically */
+.phone-number, .date-time, .highlight-text,
+.info-card .highlight-text,
+.party-details p,
+strong {
+    letter-spacing: 0 !important;
+    font-feature-settings: "kern" 0, "liga" 0 !important;
+}
+
+/* Additional mobile fix for all numbers */
+@media (max-width: 768px) {
+    .phone-number, .date-time, .highlight-text,
+    .info-card .highlight-text,
+    .party-details p {
+        letter-spacing: -0.01em !important;
+        font-feature-settings: "kern" 0, "liga" 0, "tnum" 1 !important;
+        font-variant-numeric: tabular-nums !important;
+    }
 }
 
 /* Prevent awkward line breaks on mobile */
@@ -772,6 +792,7 @@ img:hover {
 @media (max-width: 480px) {
     body {
         font-size: 0.9rem;
+        letter-spacing: 0.01em;
     }
     
     .welcome-container {
