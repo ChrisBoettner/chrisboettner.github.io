@@ -100,16 +100,38 @@ strong {
         font-feature-settings: "kern" 0, "liga" 0, "tnum" 1 !important;
         font-variant-numeric: tabular-nums !important;
     }
+    
+    /* Better image sizing on tablets */
+    .image-text-layout img {
+        max-width: 400px;
+    }
+    
+    .groningen-layout img {
+        max-width: 350px;
+    }
 }
 
 /* Prevent awkward line breaks on mobile */
 @media (max-width: 480px) {
     .phone-number {
         white-space: nowrap;
+        font-size: 1.1rem;
     }
     
     .date-time {
         white-space: nowrap;
+        font-size: 1.1rem;
+    }
+    
+    /* Better text readability */
+    p {
+        word-wrap: break-word;
+        hyphens: auto;
+    }
+    
+    /* Improve line height for better reading */
+    .section-content {
+        line-height: 1.7;
     }
 }
 
@@ -374,6 +396,7 @@ body::before {
 
 .image-text-layout img {
     width: 100%;
+    max-width: 500px;
     border-radius: 16px;
     flex-shrink: 0;
     box-shadow: 0 12px 40px var(--shadow-medium), 0 4px 16px rgba(230, 126, 34, 0.15);
@@ -381,6 +404,8 @@ body::before {
     border: 2px solid rgba(255, 255, 255, 0.3);
     display: block;
     margin: 0 auto;
+    height: auto;
+    object-fit: cover;
 }
 
 .image-text-layout img:hover {
@@ -410,14 +435,18 @@ body::before {
     transform: translateY(-4px) scale(1.02);
 }
 
-/* Universal hover animation for ALL images */
+/* Universal hover animation for ALL images - disabled on mobile */
 img {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 100%;
+    height: auto;
 }
 
-img:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 16px 50px var(--shadow-medium), 0 6px 20px rgba(230, 126, 34, 0.2);
+@media (hover: hover) and (pointer: fine) {
+    img:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 16px 50px var(--shadow-medium), 0 6px 20px rgba(230, 126, 34, 0.2);
+    }
 }
 
 /* Info Cards */
@@ -487,6 +516,9 @@ img:hover {
     box-shadow: 0 8px 25px var(--shadow), 0 2px 8px rgba(230, 126, 34, 0.3);
     position: relative;
     overflow: hidden;
+    min-height: 44px;
+    touch-action: manipulation;
+    cursor: pointer;
 }
 
 .btn-primary::before {
@@ -526,6 +558,9 @@ img:hover {
     box-shadow: 0 4px 16px var(--shadow-light);
     position: relative;
     overflow: hidden;
+    min-height: 44px;
+    touch-action: manipulation;
+    cursor: pointer;
 }
 
 .btn-secondary::before {
@@ -584,9 +619,10 @@ img:hover {
     text-align: center;
     margin: 2rem 0;
     padding: 1.5rem;
-    background: rgba(59, 130, 246, 0.05);
+    background: rgba(230, 126, 34, 0.08);
     border-radius: 12px;
-    border: 1px solid rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(230, 126, 34, 0.2);
+    line-height: 1.5;
 }
 
 /* Party Section */
@@ -655,6 +691,20 @@ img:hover {
 
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+    .container {
+        padding: 1.5rem;
+    }
+    
+    .image-text-layout {
+        gap: 2rem;
+    }
+    
+    .groningen-layout {
+        gap: 2rem;
+    }
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 1rem;
@@ -714,6 +764,7 @@ img:hover {
     .content-section {
         padding: 2rem 1.5rem;
         margin-bottom: 2.5rem;
+        border-radius: 12px;
     }
     
     .section-content p {
@@ -724,11 +775,19 @@ img:hover {
     .image-text-layout {
         flex-direction: column;
         gap: 2rem;
+        text-align: center;
+    }
+    
+    .image-text-layout .section-content {
+        order: 1;
     }
     
     .image-text-layout img {
+        order: 2;
         min-width: auto;
         max-width: 100%;
+        width: 100%;
+        height: auto;
     }
     
     .image-gallery {
@@ -740,6 +799,7 @@ img:hover {
     .info-card {
         padding: 2rem 1.5rem;
         margin: 1.5rem 0;
+        border-radius: 12px;
     }
     
     .info-card h3 {
@@ -763,6 +823,8 @@ img:hover {
         font-size: 1rem;
         text-align: center;
         justify-content: center;
+        min-height: 48px;
+        touch-action: manipulation;
     }
     
     .groningen-layout {
@@ -770,9 +832,16 @@ img:hover {
         gap: 2rem;
     }
     
+    .groningen-layout > div {
+        order: 1;
+    }
+    
     .groningen-layout img {
+        order: 2;
         min-width: auto;
         max-width: 100%;
+        width: 100%;
+        height: auto;
     }
     
     .groningen-info {
@@ -793,6 +862,7 @@ img:hover {
     body {
         font-size: 0.9rem;
         letter-spacing: 0.01em;
+        line-height: 1.6;
     }
     
     .welcome-container {
@@ -836,8 +906,14 @@ img:hover {
     }
     
     .section-content p {
-        font-size: 0.95rem;
-        line-height: 1.55;
+        font-size: 1rem;
+        line-height: 1.65;
+        margin-bottom: 1.2rem;
+        text-align: left;
+    }
+    
+    .section-content {
+        text-align: left;
     }
     
     .info-card {
@@ -846,6 +922,8 @@ img:hover {
     
     .info-card h3 {
         font-size: 1.2rem;
+        line-height: 1.4;
+        margin-bottom: 1rem;
     }
     
     .info-card .highlight-text {
@@ -854,8 +932,11 @@ img:hover {
     
     .btn-primary, .btn-secondary {
         max-width: 260px;
-        padding: 1rem 1.5rem;
-        font-size: 0.95rem;
+        padding: 1.1rem 1.5rem;
+        font-size: 1rem;
+        min-height: 50px;
+        line-height: 1.4;
+        touch-action: manipulation;
     }
     
     .groningen-info {
@@ -873,6 +954,25 @@ img:hover {
     .special-highlight {
         font-size: 1.1rem;
         padding: 1.2rem;
+        line-height: 1.5;
+        text-align: center;
+    }
+}
+
+/* Better text spacing on small screens */
+@media (max-width: 400px) {
+    .section-content p {
+        margin-bottom: 1.5rem;
+        text-align: left;
+    }
+    
+    .info-card p {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .party-details p {
+        margin-bottom: 0.8rem;
     }
 }
 
@@ -905,7 +1005,10 @@ img:hover {
     
     .btn-primary, .btn-secondary {
         max-width: 240px;
-        padding: 0.9rem 1.2rem;
-        font-size: 0.9rem;
+        padding: 1rem 1.2rem;
+        font-size: 0.95rem;
+        min-height: 48px;
+        line-height: 1.3;
+        touch-action: manipulation;
     }
 }
