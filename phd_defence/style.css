@@ -82,6 +82,12 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
+/* Style superscript asterisk for gender-inclusive language */
+sup {
+    color: var(--text-primary);
+    font-weight: inherit;
+}
+
 /* Prevent awkward line breaks on mobile */
 @media (max-width: 480px) {
     .phone-number {
