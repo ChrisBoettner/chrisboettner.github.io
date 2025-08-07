@@ -958,6 +958,7 @@ img {
     .container {
         padding: 1rem;
         max-width: 100%;
+        overflow-x: hidden;
     }
     
     .welcome-container {
@@ -1006,6 +1007,9 @@ img {
     .page-title {
         line-height: 1.2;
         margin-bottom: 0.8rem;
+        font-size: clamp(1.5rem, 4vw, 2.2rem) !important;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
     
     .page-subtitle {
@@ -1015,23 +1019,39 @@ img {
     .section-title {
         line-height: 1.3;
         margin-bottom: 1.5rem;
+        font-size: clamp(1.2rem, 3vw, 1.7rem) !important;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+        -webkit-hyphens: auto;
+    }
+    
+    /* Specific fix for long German titles */
+    .section-title:contains("Verteidigung") {
+        font-size: clamp(1.1rem, 2.8vw, 1.6rem) !important;
     }
     
     .content-section {
         padding: 1.75rem 1.25rem;
         margin-bottom: 2rem;
         border-radius: 12px;
+        overflow-x: hidden;
     }
     
     .section-content p {
         line-height: 1.7;
         margin-bottom: 1.25rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+        -webkit-hyphens: auto;
     }
     
     .image-text-layout {
         flex-direction: column;
         gap: 1.5rem;
         text-align: left;
+        overflow-x: hidden;
     }
     
     .image-text-layout .section-content {
@@ -1046,6 +1066,8 @@ img {
         height: auto;
         object-fit: cover;
         aspect-ratio: 16/10;
+        margin: 0 auto;
+        display: block;
     }
     
     .image-gallery {
@@ -1059,21 +1081,33 @@ img {
     .groningen-layout img {
         box-shadow: 0 8px 25px var(--shadow-light);
         border-width: 1px;
+        max-width: 100%;
+        height: auto;
+        margin: 0 auto;
+        display: block;
     }
     
     .info-card {
         padding: 1.75rem 1.25rem;
         margin: 1.5rem 0;
         border-radius: 12px;
+        overflow-x: hidden;
     }
     
     .info-card h3 {
         font-size: 1.3rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+        -webkit-hyphens: auto;
+        line-height: 1.4;
     }
     
     .info-card .highlight-text {
         line-height: 1.4;
         margin-bottom: 0.8rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
     
     /* Fix date-time overflow on mobile */
@@ -1114,6 +1148,7 @@ img {
     .groningen-layout {
         flex-direction: column;
         gap: 2rem;
+        overflow-x: hidden;
     }
     
     .groningen-layout > div {
@@ -1128,14 +1163,18 @@ img {
         height: auto;
         object-fit: cover;
         aspect-ratio: 3/2;
+        margin: 0 auto;
+        display: block;
     }
     
     .groningen-info {
         padding: 1.5rem;
+        overflow-x: hidden;
     }
     
     .party-details {
         padding: 1.5rem;
+        overflow-x: hidden;
     }
     
     .thesis-links {
@@ -1149,6 +1188,7 @@ img {
         font-size: 16px;
         letter-spacing: 0;
         line-height: 1.65;
+        overflow-x: hidden;
     }
     
     .welcome-container {
@@ -1185,15 +1225,29 @@ img {
     .page-title {
         line-height: 1.15;
         word-break: break-word;
+        font-size: clamp(1.3rem, 3.5vw, 2rem) !important;
     }
     
     .section-title {
         margin-bottom: 1.25rem;
+        font-size: clamp(1rem, 2.8vw, 1.5rem) !important;
+    }
+    
+    /* Thesis title specific mobile sizing */
+    [style*="font-size: 1.8rem"], 
+    h3[style*="color: var(--highlight); font-size: 1.8rem"] {
+        font-size: clamp(1.1rem, 3vw, 1.4rem) !important;
+        line-height: 1.3 !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        hyphens: auto !important;
+        -webkit-hyphens: auto !important;
     }
     
     .content-section {
         padding: 1.5rem 1.1rem;
         margin-bottom: 1.75rem;
+        overflow-x: hidden;
     }
     
     .section-content p {
@@ -1203,26 +1257,35 @@ img {
         text-align: left;
         word-wrap: break-word;
         hyphens: auto;
+        overflow-wrap: break-word;
     }
     
     .section-content {
         text-align: left;
+        overflow-x: hidden;
     }
     
     .info-card {
         padding: 1.5rem 1.1rem;
         margin: 1.25rem 0;
+        overflow-x: hidden;
     }
     
     .info-card h3 {
         font-size: 1.2rem;
         line-height: 1.4;
         margin-bottom: 1rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+        -webkit-hyphens: auto;
     }
     
     .info-card .highlight-text {
         line-height: 1.35;
         margin-bottom: 0.75rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
     
     /* Fix date-time overflow on very small screens */
@@ -1232,6 +1295,8 @@ img {
         display: block !important;
         padding: 0 0.25rem !important;
         word-spacing: -0.1em;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
     }
     
     .btn-primary, .btn-secondary {
@@ -1247,10 +1312,12 @@ img {
     
     .groningen-info {
         padding: 1.2rem;
+        overflow-x: hidden;
     }
     
     .party-details {
         padding: 1.2rem;
+        overflow-x: hidden;
     }
     
     .thesis-links {
@@ -1262,6 +1329,16 @@ img {
         padding: 1.2rem;
         line-height: 1.5;
         text-align: center;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    /* Ensure all images are properly contained */
+    img {
+        max-width: 100% !important;
+        height: auto !important;
+        margin: 0 auto !important;
+        display: block !important;
     }
 }
 
@@ -1294,15 +1371,35 @@ img {
     .party-details p {
         margin-bottom: 0.8rem;
         font-size: 0.95rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
     
     .container {
         padding: 0.75rem;
+        overflow-x: hidden;
     }
     
     .content-section {
         border-radius: 12px;
         margin-bottom: 2rem;
+        overflow-x: hidden;
+    }
+    
+    /* Additional thesis title improvements for very small screens */
+    [style*="font-size: 1.8rem"], 
+    h3[style*="color: var(--highlight); font-size: 1.8rem"] {
+        font-size: clamp(1rem, 2.8vw, 1.3rem) !important;
+        padding: 0 0.5rem !important;
+        text-align: center !important;
+        margin: 0.5rem 0 1rem 0 !important;
+    }
+    
+    /* Better button spacing on very small screens */
+    .btn-primary, .btn-secondary {
+        font-size: 0.9rem;
+        padding: 1rem 1.25rem;
+        margin: 0.4rem auto;
     }
 }
 
@@ -1371,6 +1468,7 @@ img {
 @media (max-width: 360px) {
     .container {
         padding: 0.5rem;
+        overflow-x: hidden;
     }
     
     .language-btn {
@@ -1383,10 +1481,12 @@ img {
     .content-section {
         padding: 1.25rem 1rem;
         margin-bottom: 1.5rem;
+        overflow-x: hidden;
     }
     
     .info-card {
         padding: 1.25rem 1rem;
+        overflow-x: hidden;
     }
     
     .btn-primary, .btn-secondary {
@@ -1396,5 +1496,72 @@ img {
         line-height: 1.3;
         touch-action: manipulation;
         border-radius: 30px;
+        font-size: 0.85rem;
+    }
+    
+    /* Even smaller thesis title for tiny screens */
+    [style*="font-size: 1.8rem"], 
+    h3[style*="color: var(--highlight); font-size: 1.8rem"] {
+        font-size: clamp(0.95rem, 2.5vw, 1.2rem) !important;
+    }
+    
+    .section-title {
+        font-size: clamp(0.9rem, 2.5vw, 1.3rem) !important;
+    }
+    
+    .page-title {
+        font-size: clamp(1.2rem, 3.2vw, 1.8rem) !important;
+    }
+}
+
+/* Additional mobile optimizations */
+@media (max-width: 768px) {
+    /* Prevent text from getting too close to screen edges */
+    .section-content p,
+    .info-card p,
+    .party-details p {
+        margin-left: 0.25rem;
+        margin-right: 0.25rem;
+    }
+    
+    /* Better touch targets for links */
+    a {
+        min-height: 44px;
+        min-width: 44px;
+        display: inline-block;
+        padding: 0.25rem;
+        -webkit-tap-highlight-color: rgba(230, 126, 34, 0.1);
+    }
+    
+    /* Ensure phone numbers and dates don't break awkwardly */
+    .phone-number,
+    .date-time {
+        display: inline-block;
+        margin: 0.25rem 0;
+        padding: 0.25rem;
+        word-spacing: normal;
+        letter-spacing: normal;
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+    /* Better button press feedback */
+    .btn-primary:active,
+    .btn-secondary:active,
+    .language-btn:active {
+        transform: scale(0.95) !important;
+        transition: transform 0.1s ease !important;
+    }
+    
+    /* Disable problematic hover effects */
+    .back-link:hover {
+        transform: none;
+        background: transparent;
+    }
+    
+    /* Better spacing for touch */
+    .info-card-buttons {
+        gap: 1rem;
     }
 }
