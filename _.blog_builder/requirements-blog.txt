@@ -1,0 +1,4 @@
+# Requirements for blog post conversion script
+beautifulsoup4>=4.12.0
+jupyter>=1.0.0
+nbconvert>=7.0.0
