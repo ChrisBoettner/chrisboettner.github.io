@@ -78,6 +78,17 @@ def convert_cell_to_blog_html(cell):
                 if output_text.strip():
                     cell_html.append(f'<div class="code-output">\n    <pre>{output_text}</pre>\n</div>')
 
+            # Look for HTML outputs (like animations)
+            html_outputs = output_area.find_all('div', class_=re.compile(r'jp-RenderedHTMLCommon|output_html'))
+            for html_output in html_outputs:
+                # Get the HTML content, preserving all nested elements and scripts
+                html_content = str(html_output)
+                # Remove the outer wrapper div but keep all inner content
+                html_content = re.sub(r'^<div[^>]*>', '', html_content)
+                html_content = re.sub(r'</div>$', '', html_content.strip())
+                if html_content.strip():
+                    cell_html.append(f'<div class="code-output-html">\n{html_content}\n</div>')
+
             # Look for images
             images = output_area.find_all('img')
             for img in images:
@@ -196,6 +207,17 @@ def create_blog_html(cells, title, date, description, tags, keywords=None):
         .code-output-image {{
             margin: 20px 0;
             text-align: center;
+        }}
+        .code-output-html {{
+            margin: 20px 0;
+            padding: 16px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .code-output-html > div {{
+            width: 100%;
+            max-width: 100%;
         }}
         .cell-label {{
             font-size: 12px;
