@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photometric Classification of Tidal Disruption Events With AutoGluon | Chris Boettner</title>
+    <meta name="description" content="Approaching an astronomy Kaggle classification challenge with AutoML.">
+    <meta name="keywords" content="AutoML, Classification, Tree-Based Methods">
+
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:title"
+        content="Photometric Classification of Tidal Disruption Events With AutoGluon | Chris Boettner">
+    <meta property="og:description" content="Approaching an astronomy Kaggle classification challenge with AutoML.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://chrisboettner.github.io/blog/posts/2026-02-08-mallorn_blog_post.html">
+
+    <!-- Twitter Card data -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title"
+        content="Photometric Classification of Tidal Disruption Events With AutoGluon | Chris Boettner">
+    <meta name="twitter:description" content="Approaching an astronomy Kaggle classification challenge with AutoML.">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22256%22 height=%22256%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23121212%22></rect><path fill=%22%23fff%22 d=%22M30.92 71.12L30.92 29.12Q34.08 28.36 38.74 27.64Q43.40 26.92 49.36 26.92Q55.52 26.92 59.76 28.44Q64.00 29.96 66.40 32.88Q68.80 35.80 68.80 40.16Q68.80 44.12 66.32 46.96Q63.84 49.80 59.84 51.24Q64.84 52.44 67.68 55.52Q70.52 58.60 70.52 63.84Q70.52 68.44 68.06 71.60Q65.60 74.76 60.96 76.40Q56.32 78.04 49.96 78.04Q43.96 78.04 38.80 77.40Q33.64 76.76 30.92 76.12L30.92 71.12ZM39.00 49.16L48.76 49.16Q54.32 49.16 57.12 47.08Q59.92 45.00 59.92 40.88Q59.92 38.32 58.68 36.64Q57.44 34.96 55.00 34.12Q52.56 33.28 48.76 33.28Q46.36 33.28 44.08 33.52Q41.80 33.76 39.96 34.12L39.00 34.36L39.00 49.16ZM39.00 71.12Q41.08 71.48 43.64 71.72Q46.20 71.96 49.24 71.96Q55.12 71.96 58.56 69.92Q62.00 67.88 62.00 63.28Q62.00 58.72 58.48 56.52Q54.96 54.32 48.76 54.32L39.00 54.32L39.00 71.12Z%22></path></svg>">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+
+    <!-- MathJax for LaTeX rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        .code-cell {
+            background: #907552;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+
+        .code-cell pre {
+            margin: 0;
+            color: #e0e0e0;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .code-output {
+            background: #f5f5f5;
+            border-left: 4px solid #4a9eff;
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+        }
+
+        .code-output pre {
+            margin: 0;
+            color: #333;
+        }
+
+        .code-output-image {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .code-output-html {
+            margin: 20px 0;
+            padding: 16px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .code-output-html>div {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .cell-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .blog-post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .blog-post-content thead th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid #475569;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .blog-post-content tbody td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .blog-post-content tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .blog-post-content tbody tr:hover {
+            background-color: rgba(241, 245, 249, 0.6);
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <a href="/" class="logo">CB.</a>
+        <div class="nav-links">
+            <a href="../../about.html">about</a>
+            <a href="../../blog/index.html">blog</a>
+            <a href="https://github.com/ChrisBoettner" target="_blank" aria-label="GitHub Profile">
+                <svg height="24" width="24" viewBox="0 0 16 16" fill="black">
+                    <path
+                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+                    </path>
+                </svg>
+            </a>
+            <a href="mailto:christopher.boettner95@gmail.com" aria-label="Email Me">
+                <svg height="24" width="24" viewBox="0 0 24 24" fill="black">
+                    <path
+                        d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6zm-2 0l-8 5-8-5h16zm0 12H4V8l8 5 8-5v10z" />
+                </svg>
+            </a>
+        </div>
+    </nav>
+
+    <main>
+        <article>
+            <div class="blog-post-header">
+                <h1>Photometric Classification of Tidal Disruption Events With AutoGluon</h1>
+                <div class="meta">
+                    <span>February 08, 2026</span>
+                    <div class="tags">
+                        <span class="tag">AutoML</span>, <span class="tag">Classification</span>, <span
+                            class="tag">Kaggle</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="blog-post-content">
+
+                <h2 id="Background">Background</h2>
+
+                <p>I entered the <a
+                        href="https://kaggle.com/competitions/mallorn-astronomical-classification-challenge">MALLORN
+                        Classifier Challenge</a> in late November. It was a great way to spend some time doing some good
+                    old-fashioned machine learning. Ultimately, with me moving and starting a new job, I didn't have too
+                    much time to spare. But I still managed to get an F1 score of 0.6426 on the final private test data,
+                    which led to 26th place out of 894. So not too shabby.</p>
+
+                <p>I want to give a brief write-up on my modelling decisions and findings. You can find the full code <a
+                        href="https://github.com/ChrisBoettner/MALLORN_data_challenge">here</a>.</p>
+
+                <p>The challenge asks participants to identify Tidal Disruption Events (TDEs) in simulated LSST light
+                    curves. TDEs occur when a star is ripped apart by the tidal forces of a supermassive black hole.
+                    They are rare (~100 confirmed), scientifically valuable, and difficult to distinguish from other
+                    transients photometrically.</p>
+
+                <p>The training set has 3043 objects in four classes: AGN (59%), SN Ia (27%), CC SN (9%), and TDE (4.9%,
+                    our target). Each object has multi-band light curves (flux vs time in <code>u</code>,
+                    <code>g</code>, <code>r</code>, <code>i</code>, <code>z</code>, <code>y</code> bands) plus metadata
+                    (photometric redshift, dust extinction). The metric is binary F1 for TDE detection only.</p>
+
+                <p>My approach was simple: some feature engineering and AutoGluon for AutoML. Key modelling decisions
+                    include multiclass over binary, careful metric selection, and post-training threshold optimisation.
+                </p>
+
+                <h2 id="AutoGluon-Setup">AutoGluon Setup</h2>
+
+                <p>I used <a href="https://auto.gluon.ai/">AutoGluon-Tabular</a> for classification. For a dataset this
+                    size (~3000 objects, ~400 hand-crafted features), tree-based ensembles dominate, and AutoGluon
+                    handles the model zoo (LightGBM, XGBoost, CatBoost, neural networks, linear models, k-NN) and
+                    stacking automatically.</p>
+
+                <p>The main reason I chose AutoGluon over hand-tuning individual GBDTs is the out-of-fold (OOF)
+                    predictions it produces from bagged training. Every training object gets a prediction from the fold
+                    where it wasn't used for training. This is critical for the threshold optimisation described later.
+                </p>
+
+                <div class="code-cell">
+                    <pre>from autogluon.tabular import TabularPredictor
+
+predictor = TabularPredictor(
+    label="target",
+    sample_weight="weight",
+    eval_metric="f1_macro",
+    problem_type="multiclass",
+)
+
+predictor.fit(
+    train_data,
+    presets="high_quality",
+    time_limit=3600,
+    num_bag_folds=5,
+)
+</pre>
+                </div>
+
+                <h2 id="Multiclass-vs-Binary">Multiclass vs Binary</h2>
+
+                <p>The competition asks for a binary TDE/not-TDE prediction, but I found that training a 4-class model
+                    and reducing to binary consistently outperformed direct binary classification. Under identical
+                    conditions:</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mode</th>
+                            <th>OOF TDE F1</th>
+                            <th>Threshold</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Multiclass</td>
+                            <td>0.616</td>
+                            <td>0.418</td>
+                        </tr>
+                        <tr>
+                            <td>Binary</td>
+                            <td>0.560</td>
+                            <td>0.501</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>The gap widened further at longer training times. My interpretation is that the multiclass model
+                    learns sharper decision boundaries. In binary mode, AGN, SN Ia, and CC SN are all lumped into a
+                    single "not TDE" class, which is extremely heterogeneous. The multiclass model explicitly learns the
+                    structure of each confounding class, which helps it separate them from TDEs.</p>
+                <p>This matters most for false positives. The main FP sources are AGN (flare-like variability) and SN
+                    IIn (smooth post-peak declines that mimic TDEs). With explicit AGN and CC SN classes, the model has
+                    dedicated decision boundaries against these confounders.</p>
+
+                <h2 id="Class-Weighting">Class Weighting</h2>
+
+                <p>TDEs are 4.9% of the training set. We apply per-sample weights inversely proportional to class
+                    frequency:</p>
+                <p>$$w_c = \frac{N}{K \cdot N_c}$$</p>
+                <p>with an additional TDE boost factor $\beta$. I swept $\beta \in \{1, 2, 3, 5, 8, 10\}$ and found
+                    $\beta = 5$ optimal for multiclass. This gives TDE samples about 25 times the weight of AGN samples.
+                </p>
+                <p>In binary mode, $\beta = 1$ worked best. I think this is because the two-class formulation already
+                    makes the imbalance explicit, and additional boosting causes overfitting.</p>
+
+                <h2 id="Training-Metric-vs-Competition-Metric">Training Metric vs Competition Metric</h2>
+
+                <p>An important subtlety: the competition metric (binary TDE F1) is not necessarily the best
+                    <em>training</em> metric. AutoGluon uses <code>eval_metric</code> for early stopping, hyperparameter
+                    tuning, and model ranking. I tested:</p>
+                <ul>
+                    <li><code>f1_macro</code>: Multiclass F1 averaged across all four classes.</li>
+                    <li><code>f1_tde</code>: Custom scorer computing binary TDE F1 from multiclass predictions.</li>
+                    <li><code>log_loss</code>: Probabilistic calibration loss.</li>
+                </ul>
+                <p>Despite being the competition metric, <code>f1_tde</code> underperformed. I believe it overfits
+                    during model selection because the TDE class is so small (148 samples). <code>f1_macro</code>
+                    produced better overall representations that generalised better after threshold tuning.</p>
+
+                <div class="code-cell">
+                    <pre>from autogluon.core.metrics import make_scorer
+from sklearn.metrics import f1_score
+
+TDE_LABEL = 3
+
+
+def _f1_tde_multiclass(y_true, y_pred):
+    """Binary F1 for TDE class in multiclass setting."""
+    y_binary_true = (y_true == TDE_LABEL).astype(int)
+    y_binary_pred = (y_pred == TDE_LABEL).astype(int)
+    return f1_score(y_binary_true, y_binary_pred)
+
+
+F1_TDE_SCORER = make_scorer(
+    name="f1_tde",
+    score_func=_f1_tde_multiclass,
+    optimum=1.0,
+    greater_is_better=True,
+)
+</pre>
+                </div>
+
+                <p>A useful middle ground: train base models with <code>f1_macro</code>, then refit the ensemble weights
+                    with <code>f1_tde</code>. This is a cheap post-training step (no retraining of base models) that
+                    sometimes picks up extra points. AutoGluon's <code>fit_weighted_ensemble</code> makes this
+                    straightforward.</p>
+
+                <h2 id="Features">Features</h2>
+
+                <p>The feature set evolved over multiple iterations.</p>
+
+                <h3 id="Iteration-1-Generic-Statistics">Iteration 1: Generic Statistics (~336 features)</h3>
+
+                <p>Per-band statistics ($\times$ 6 bands): flux mean/std/range/skewness/kurtosis, rise and decay rates,
+                    SNR metrics, variability indices (Stetson K, Von Neumann $\eta$, MAD), peak properties. Plus
+                    cross-band colours, peak delays, and redshift-weighted variants.</p>
+
+                <p>OOF F1 with this set: ~0.65.</p>
+
+                <h3 id="Iteration-2-Physics-Motivated-Features">Iteration 2: Physics-Motivated Features (+21 features)
+                </h3>
+
+                <p>Error analysis on a holdout set revealed three main confusion patterns:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Confusion</th>
+                            <th>Count</th>
+                            <th>Cause</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>AGN $\to$ TDE (FP)</td>
+                            <td>Dominant</td>
+                            <td>AGN flares mimic TDE rise</td>
+                        </tr>
+                        <tr>
+                            <td>SN IIn $\to$ TDE (FP)</td>
+                            <td>Second</td>
+                            <td>Smooth post-peak similar to TDE</td>
+                        </tr>
+                        <tr>
+                            <td>TDE $\to$ SN Ia (FN)</td>
+                            <td>Third</td>
+                            <td>Some TDEs have SN-like decline</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>I designed 21 features targeting these confusions:</p>
+                <ul>
+                    <li>Late-time behaviour: <code>late_time_activity</code> measures variability in the final 30% of
+                        the light curve. TDEs fade to baseline; AGN stay active. This turned out to be the single most
+                        important feature.</li>
+                    <li>Peak timing: <code>blue_peaks_first_count</code> encodes Wien's law prediction that TDE blue
+                        bands peak before red.</li>
+                    <li>Post-peak smoothness: Residual scatter after polynomial fit to post-peak data. TDEs are smooth;
+                        AGN and IIn are bumpy.</li>
+                    <li>Decay shape: Power-law fits to post-peak decline, checking if $\alpha \approx 5/3$ (TDE mass
+                        fallback prediction). Also DRW fits as AGN diagnostics.</li>
+                    <li>Colour evolution: Early-to-late colour change captures TDE cooling (blue $\to$ red).</li>
+                    <li>SN Ia discrimination: <code>decline_uniformity</code> measures how uniform the decay rate is
+                        across bands. SN Ia are very uniform; TDEs aren't.</li>
+                </ul>
+
+                <h3 id="Top-Features">Top Features</h3>
+
+                <p>Permutation importance on the holdout set (best available run):</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Feature</th>
+                            <th>Importance</th>
+                            <th>Category</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td><code>late_time_activity</code></td>
+                            <td>+0.0229</td>
+                            <td>TDE-specific</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td><code>blue_peaks_first_count</code></td>
+                            <td>+0.0123</td>
+                            <td>TDE-specific</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td><code>z_x_r_mad</code></td>
+                            <td>+0.0107</td>
+                            <td>Redshift-weighted</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td><code>i_frac_positive</code></td>
+                            <td>+0.0106</td>
+                            <td>Per-band</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td><code>z_x_preflare_activity</code></td>
+                            <td>+0.0096</td>
+                            <td>Redshift-weighted</td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td><code>post_peak_smoothness</code></td>
+                            <td>+0.0081</td>
+                            <td>TDE-specific</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>The physics-motivated features dominate the top ranks. Interestingly, <code>resampled_skew_r</code>
+                    was the top feature for the 2nd place GBDT solution. I didn't use resampled/interpolated features,
+                    which is probably a gap.</p>
+
+                <h2 id="Threshold-Optimisation">Threshold Optimisation</h2>
+
+                <p>This was probably the most impactful modelling decision. AutoGluon predicts the most probable class
+                    by default. But for TDE detection, we separately tune the probability threshold $\theta$ at which we
+                    classify something as TDE.</p>
+                <p>After training, we have OOF probabilities $P(\text{TDE} \mid x)$ for every training object. We sweep
+                    $\theta \in [0.01, 0.99]$ and select $\theta^* = \arg\max_\theta \text{F1}(\theta)$.</p>
+
+                <div class="code-cell">
+                    <pre>import warnings
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from sklearn.metrics import f1_score
+
+warnings.filterwarnings("ignore")
+plt.rcParams["figure.figsize"] = (12, 5)
+sns.set_style("whitegrid")
+
+oof = pd.read_csv("../output/analysis/oof_predictions.csv")
+proba_col = next(c for c in oof.columns if "prob" in c.lower())
+tde_val = 3
+
+thresholds = np.arange(0.01, 1.0, 0.01)
+f1_scores = [
+    f1_score(
+        (oof["true_label"] == tde_val).astype(int),
+        (oof[proba_col] >= t).astype(int),
+        zero_division=0,
+    )
+    for t in thresholds
+]
+
+best_idx = np.argmax(f1_scores)
+print(f"Best threshold: {thresholds[best_idx]:.2f}  (F1 = {f1_scores[best_idx]:.4f})")
+
+fig, ax = plt.subplots()
+ax.plot(thresholds, f1_scores, linewidth=2)
+ax.axvline(
+    thresholds[best_idx],
+    color="black",
+    linestyle="--",
+    alpha=0.7,
+    label=f"$\\theta^* = {thresholds[best_idx]:.2f}$",
+)
+ax.set_xlabel("TDE Probability Threshold $\\theta$")
+ax.set_ylabel("F1 Score")
+ax.set_title("Threshold Optimisation on OOF Predictions")
+ax.legend()
+plt.tight_layout()
+</pre>
+                </div>
+
+                <p>An additional subtlety: AutoGluon trains many models internally, and different models produce
+                    different OOF probabilities with different optimal thresholds. Rather than using AutoGluon's default
+                    "best model" (ranked by <code>f1_macro</code>), I iterate through all models on the leaderboard,
+                    optimise the threshold for each, and select the model with the best TDE F1 after tuning. This often
+                    selects a different model than the default ranking.</p>
+
+                <h2 id="Cross-Validation">Cross-Validation</h2>
+
+                <p>With only 148 TDEs, validation is noisy. I used two modes:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mode</th>
+                            <th>Purpose</th>
+                            <th>TDEs in Validation</th>
+                            <th>Feature Importance</th>
+                            <th>Submission</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Full (5-fold OOF)</td>
+                            <td>Final runs</td>
+                            <td>~148 (all)</td>
+                            <td>No</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td>Holdout (80/20)</td>
+                            <td>Iteration</td>
+                            <td>~30</td>
+                            <td>Yes</td>
+                            <td>No</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>The OOF approach is more reliable because we evaluate on all 148 TDEs rather than the ~30 in a single
+                    holdout fold. But the holdout mode is faster (1 fit instead of 5) and supports permutation-based
+                    feature importance.</p>
+
+                <h2 id="Stacking-Configuration">Stacking Configuration</h2>
+
+                <p>AutoGluon supports multi-level stacking: models at level $L+1$ train on predictions from level $L$
+                    plus original features. I tried:</p>
+                <ul>
+                    <li>No stacking (<code>num_stack_levels=0</code>): Bagged models + weighted ensemble. Fast.</li>
+                    <li>2-level stacking: Sweet spot for shorter runs.</li>
+                    <li>Dynamic stacking: AutoGluon decides adaptively. Mixed results.</li>
+                </ul>
+                <p>The <code>extreme_quality</code> preset with default stacking and a long time limit worked best. I
+                    also tested restricting the model pool (e.g. only GBM, XGB, CatBoost, TabM), but letting AutoGluon
+                    explore freely was better.</p>
+
+                <h2 id="Final-Pipeline">Final Pipeline</h2>
+
+                <ol>
+                    <li>Extract ~400 features from light curves</li>
+                    <li>Train 4-class multiclass model (AutoGluon, <code>extreme_quality</code>, <code>f1_macro</code>,
+                        $\beta_{\text{TDE}} = 5$)</li>
+                    <li>Optionally refit ensemble weights with <code>f1_tde</code></li>
+                    <li>Iterate all leaderboard models, optimise TDE threshold per model on OOF</li>
+                    <li>Select best model by TDE F1, apply to test set</li>
+                </ol>
+                <p>Best result: F1 = 0.70 (precision 0.71, recall 0.64, threshold 0.48).</p>
+
+                <h2 id="What-Worked">What Worked</h2>
+
+                <ul>
+                    <li>Multiclass over binary. Consistently better by ~5 F1 points under identical conditions.</li>
+                    <li>Per-model threshold optimisation. Probably the single biggest improvement.</li>
+                    <li>Physics-motivated features. <code>late_time_activity</code> and
+                        <code>blue_peaks_first_count</code> dominate feature importance.</li>
+                    <li>Aggressive TDE class weighting ($\beta = 5$).</li>
+                    <li>Using <code>f1_macro</code> for training, <code>f1_tde</code> for ensemble refit. Best of both
+                        worlds.</li>
+                </ul>
+
+                <h2 id="What-Didnt-Work">What Didn't Work</h2>
+
+                <ul>
+                    <li>Training directly with <code>f1_tde</code>. Overfits during model selection on 148 TDE samples.
+                    </li>
+                    <li>Several physics features. Decay quality and decline rate metrics had negative importance. The
+                        chi-squared fits are too noisy on sparse light curves.</li>
+                    <li>Binary classification. Even with tuned weighting.</li>
+                    <li>AutoGluon's built-in feature pruning. Didn't reliably improve over using all features.</li>
+                    <li>Interpolation/resampling features. Didn't try these, but the top solutions showed resampled
+                        skewness was their top feature. I had an inkling this would be the case. And Bayesian methods
+                        and Gaussian Processes would have been perfect here. But alas, you only have so much time for
+                        fun projects.</li>
+                </ul>
+            </div>
+        </article>
+    </main>
+
+    <footer>
+        <div class="social-links">
+            <a href="https://github.com/ChrisBoettner" target="_blank" aria-label="GitHub Profile">
+                <svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor">
+                    <path
+                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
+                    </path>
+                </svg>
+            </a>
+            <a href="mailto:christopher.boettner95@gmail.com" aria-label="Email Me">
+                <svg height="24" width="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6zm-2 0l-8 5-8-5h16zm0 12H4V8l8 5 8-5v10z" />
+                </svg>
+            </a>
+            <a href="https://www.linkedin.com/in/christopher-boettner-87aa21243/" target="_blank"
+                aria-label="LinkedIn Profile">
+                <svg height="24" width="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                </svg>
+            </a>
+        </div>
+        <p>&copy; 2026 Chris Boettner. All rights reserved.</p>
+    </footer>
+
+    <script src="../../scripts/main.js"></script>
+</body>
+
+</html>
