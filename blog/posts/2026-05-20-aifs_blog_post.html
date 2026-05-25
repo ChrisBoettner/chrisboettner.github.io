@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The ECMWF's Artificial Intelligence Forecasting System | Chris Boettner</title>
+    <meta name="description"
+        content="Notes on ECMWF's data-driven weather model, written for ML researchers who know LLMs but not GNNs — with embedded demos for the grid geometry, the encoder–processor–decoder architecture, and the rollout.">
+    <meta name="keywords" content="GNN, Transformers, Weather Forecasting, Paper Notes">
+
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:title" content="The ECMWF's Artificial Intelligence Forecasting System | Chris Boettner">
+    <meta property="og:description"
+        content="Notes on ECMWF's data-driven weather model, written for ML researchers who know LLMs but not GNNs — with embedded demos.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://chrisboettner.github.io/blog/posts/2026-05-20-aifs_blog_post.html">
+
+    <!-- Twitter Card data -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="The ECMWF's Artificial Intelligence Forecasting System | Chris Boettner">
+    <meta name="twitter:description"
+        content="Notes on ECMWF's data-driven weather model, written for ML researchers who know LLMs but not GNNs — with embedded demos.">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22256%22 height=%22256%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23121212%22></rect><path fill=%22%23fff%22 d=%22M30.92 71.12L30.92 29.12Q34.08 28.36 38.74 27.64Q43.40 26.92 49.36 26.92Q55.52 26.92 59.76 28.44Q64.00 29.96 66.40 32.88Q68.80 35.80 68.80 40.16Q68.80 44.12 66.32 46.96Q63.84 49.80 59.84 51.24Q64.84 52.44 67.68 55.52Q70.52 58.60 70.52 63.84Q70.52 68.44 68.06 71.60Q65.60 74.76 60.96 76.40Q56.32 78.04 49.96 78.04Q43.96 78.04 38.80 77.40Q33.64 76.76 30.92 76.12L30.92 71.12ZM39.00 49.16L48.76 49.16Q54.32 49.16 57.12 47.08Q59.92 45.00 59.92 40.88Q59.92 38.32 58.68 36.64Q57.44 34.96 55.00 34.12Q52.56 33.28 48.76 33.28Q46.36 33.28 44.08 33.52Q41.80 33.76 39.96 34.12L39.00 34.36L39.00 49.16ZM39.00 71.12Q41.08 71.48 43.64 71.72Q46.20 71.96 49.24 71.96Q55.12 71.96 58.56 69.92Q62.00 67.88 62.00 63.28Q62.00 58.72 58.48 56.52Q54.96 54.32 48.76 54.32L39.00 54.32L39.00 71.12Z%22></path></svg>">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+
+    <!-- MathJax for LaTeX rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --demo-bg: #ffffff;
+            --demo-border: #cbd5e1;
+            --demo-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+            --kicker: #f59e0b;
+            --data-warm: #f59e0b;
+            --data-cool: #0ea5e9;
+            --muted: #94a3b8;
+            --soft-bg: #f1f5f9;
+            --rule: rgba(15, 23, 42, 0.08);
+        }
+
+        .blog-post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .blog-post-content thead th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid #475569;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .blog-post-content tbody td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .blog-post-content tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .blog-post-content tbody tr:hover {
+            background-color: rgba(241, 245, 249, 0.6);
+        }
+
+        /* LLM callouts — pulled blockquotes, amber left border (inline fallback) */
+        .llm-callout {
+            border-left: 3px solid var(--kicker);
+            background: linear-gradient(90deg, rgba(245, 158, 11, 0.06), transparent 70%);
+            padding: 14px 18px;
+            margin: 1.4rem 0;
+            font-style: italic;
+            color: #334155;
+            font-size: 0.98rem;
+            line-height: 1.55;
+        }
+
+        .llm-callout .tag {
+            display: inline-block;
+            font-family: 'Fira Code', monospace;
+            font-style: normal;
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--kicker);
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        /* Sidebar gutter for LLM callouts on wide screens.
+           Everything (prose, demos, tables, stats, refs) shares one reading column;
+           only LLM callouts escape to the right gutter. */
+        @media (min-width: 1000px) {
+            .blog-post-content {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) 280px;
+                column-gap: 40px;
+                align-items: start;
+            }
+
+            .blog-post-content>* {
+                grid-column: 1;
+                min-width: 0;
+            }
+
+            .blog-post-content>.llm-callout {
+                grid-column: 2;
+                margin: 0;
+                padding: 10px 0 10px 14px;
+                background: none;
+                border-left-width: 2px;
+                font-size: 0.88rem;
+                line-height: 1.55;
+            }
+
+            .blog-post-content>.llm-callout .tag {
+                display: block;
+                font-size: 10px;
+                margin: 0 0 6px;
+            }
+        }
+
+        /* TL;DR stat cards */
+        .tldr-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin: 1.5rem 0 1rem;
+        }
+
+        @media (max-width: 720px) {
+            .tldr-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stat-card {
+            background: var(--soft-bg);
+            border: 1px solid var(--rule);
+            border-radius: 8px;
+            padding: 20px 22px;
+        }
+
+        .stat-card .label {
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-weight: 700;
+            font-size: 38px;
+            line-height: 1;
+            color: var(--data-cool);
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value small {
+            font-size: 0.4em;
+            color: #475569;
+            margin-left: 6px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+        }
+
+        .stat-card .caption {
+            font-size: 0.9rem;
+            color: #475569;
+            line-height: 1.5;
+        }
+
+        /* Demo wrapper */
+        .demo {
+            margin: 1.8rem 0;
+            background: var(--demo-bg);
+            border: 1px solid var(--demo-border);
+            border-radius: 10px;
+            padding: 22px;
+            box-shadow: var(--demo-shadow);
+        }
+
+        .demo-head {
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--rule);
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .demo-head .kind {
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--kicker);
+            font-weight: 600;
+        }
+
+        .demo-head .title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin: 4px 0 0;
+        }
+
+        .demo-foot {
+            margin-top: 14px;
+            font-size: 0.88rem;
+            color: #475569;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* Lineage timeline */
+        .timeline {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            position: relative;
+            margin-top: 8px;
+        }
+
+        .timeline::before {
+            content: "";
+            position: absolute;
+            left: 6px;
+            right: 6px;
+            top: 28px;
+            height: 1px;
+            background: var(--rule);
+        }
+
+        .tnode {
+            background: transparent;
+            border: 0;
+            text-align: left;
+            padding: 0 6px 10px 0;
+            cursor: pointer;
+            color: inherit;
+            font: inherit;
+        }
+
+        .tnode .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            border: 1px solid #64748b;
+            margin: 22px 0 10px;
+            transition: background 200ms, transform 200ms;
+        }
+
+        .tnode.active .dot {
+            background: var(--kicker);
+            border-color: var(--kicker);
+            transform: scale(1.4);
+        }
+
+        .tnode .year {
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 2px;
+        }
+
+        .tnode .name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+
+        .tnode.active .name,
+        .tnode:hover .name {
+            color: var(--kicker);
+        }
+
+        .tinfo {
+            margin-top: 20px;
+            padding: 16px 20px;
+            background: var(--soft-bg);
+            border: 1px solid var(--rule);
+            border-radius: 6px;
+            min-height: 90px;
+        }
+
+        .tinfo .h {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+
+        .tinfo .b {
+            font-size: 0.93rem;
+            color: #334155;
+            line-height: 1.55;
+        }
+
+        @media (max-width: 900px) {
+            .timeline {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 540px) {
+            .timeline {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Grid comparison */
+        .grid-demo-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 720px) {
+            .grid-demo-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .grid-panel {
+            background: var(--soft-bg);
+            border: 1px solid var(--rule);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .grid-panel h5 {
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin: 0 0 10px;
+            font-weight: 500;
+        }
+
+        .grid-panel h5 strong {
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .grid-panel svg {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 2 / 1;
+        }
+
+        .grid-stats {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            color: #475569;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--rule);
+        }
+
+        .grid-stats strong {
+            color: #0f172a;
+        }
+
+        .grid-toggle {
+            display: flex;
+        }
+
+        .grid-toggle button {
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 8px 14px;
+            background: #fff;
+            border: 1px solid var(--demo-border);
+            color: #475569;
+            cursor: pointer;
+        }
+
+        .grid-toggle button:first-child {
+            border-right: 0;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .grid-toggle button:last-child {
+            border-radius: 0 4px 4px 0;
+        }
+
+        .grid-toggle button.on {
+            background: #0f172a;
+            color: #fafafa;
+            border-color: #0f172a;
+        }
+
+        /* EPD schematic */
+        .epd-wrap {
+            padding: 4px;
+        }
+
+        .epd-wrap svg {
+            width: 100%;
+            height: auto;
+            max-height: 340px;
+            display: block;
+        }
+
+        .epd-cap {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-top: 18px;
+        }
+
+        @media (max-width: 720px) {
+            .epd-cap {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .epd-cap>div {
+            padding: 12px 14px;
+            background: #fff;
+            border: 1px solid var(--rule);
+            border-radius: 6px;
+            font-size: 0.88rem;
+            color: #475569;
+            cursor: pointer;
+            transition: border-color 180ms, box-shadow 180ms;
+        }
+
+        .epd-cap>div.on {
+            border-color: var(--kicker);
+            box-shadow: inset 3px 0 0 var(--kicker);
+        }
+
+        .epd-cap .ttl {
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--kicker);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .epd-cap .head {
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+
+        /* Reveal */
+        .reveal {
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 600ms ease, transform 600ms ease;
+        }
+
+        .reveal.in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
+        }
+
+        @media print {
+
+            .reveal,
+            .reveal.in {
+                opacity: 1 !important;
+                transform: none !important;
+            }
+        }
+
+        /* References */
+        .refs {
+            margin-top: 2.5rem;
+            background: var(--soft-bg);
+            border-radius: 8px;
+            padding: 14px 18px;
+            font-size: 0.88rem;
+        }
+
+        .refs summary {
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--kicker);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .refs ul {
+            list-style: none;
+            padding: 12px 0 0;
+            column-count: 2;
+            column-gap: 24px;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 720px) {
+            .refs ul {
+                column-count: 1;
+            }
+        }
+
+        .refs li {
+            break-inside: avoid;
+            color: #334155;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <a href="/" class="logo">CB.</a>
+        <div class="nav-links">
+            <a href="../../about.html">about</a>
+            <a href="../../blog/index.html">blog</a>
+            <a href="https://github.com/ChrisBoettner" target="_blank" aria-label="GitHub Profile">
+                <svg height="24" width="24" viewBox="0 0 16 16" fill="black">
+                    <path
+                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                </svg>
+            </a>
+            <a href="mailto:christopher.boettner95@gmail.com" aria-label="Email Me">
+                <svg height="24" width="24" viewBox="0 0 24 24" fill="black">
+                    <path
+                        d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6zm-2 0l-8 5-8-5h16zm0 12H4V8l8 5 8-5v10z" />
+                </svg>
+            </a>
+        </div>
+    </nav>
+
+    <main>
+        <article>
+            <div class="blog-post-header">
+                <h1>The ECMWF's Artificial Intelligence Forecasting System</h1>
+                <div class="meta">
+                    <span>May 20, 2026</span>
+                    <div class="tags">
+                        <span class="tag">GNN</span>, <span class="tag">Transformers</span>, <span class="tag">Weather
+                            Forecasting</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="blog-post-content">
+
+                <p>It feels like, for the past few years, the only things you hear about in AI and machine learning are
+                    LLMs and agents, maybe an image or video generation model here and there. And honestly, it's really
+                    starting to feel a bit boring to me. So I wanted to look a bit beyond all the headline news and
+                    learn a bit more about other cutting-edge machine learning applications. And being a physicist, the
+                    recent progress in machine-learned weather forecasting got me quite excited.</p>
+
+                <p>In this blog post, I want to dig a little bit into the <a
+                        href="https://arxiv.org/abs/2406.01465">AIFS</a> paper by Lang et al. (2024). AIFS is the
+                    Artificial Intelligence Forecasting System by the European Centre for Medium-Range Weather Forecasts
+                    (ECMWF). It is a system that now runs alongside the traditional physics-based Integrated Forecasting
+                    System (IFS) in order to provide better, more accurate weather forecasts.</p>
+
+                <p>The Lang 2024 paper introduces the first version of the AIFS system, and there have been a number of
+                    changes and improvements since, which I hope to dig into in follow-up posts. But I think it is a
+                    good starting point to jump into ML-based weather forecasting. I am going to write this post as if
+                    this were a one-person journal club, and as if I were presenting the paper to a person like myself:
+                    someone who has a good understanding of current LLM systems and architectures (and of some physics)
+                    and wants to understand where ML-based weather forecasting is similar, and where it differs.</p>
+
+                <div class="llm-callout reveal">
+                    <span class="tag">↔ LLM Analogy</span> Think of AIFS as a transformer-based, autoregressive
+                    next-token predictor just like an LLM, except that a token is an atmospheric state rather than a
+                    word or word fragment.
+                </div>
+
+                <h2 id="The-Setup">The Setup</h2>
+
+                <p>Weather forecasting has, for the past seventy years or so, meant <em>numerical weather
+                        prediction</em> (NWP). You take a grid of the atmosphere, discretise the relevant equations of
+                    fluid dynamics on it, and solve them on a supercomputer. This is hard. Partial differential
+                    equations can be quite difficult to work with. You have to deal with discretisation issues,
+                    numerical instabilities, and chaotic systems (Lorenz's famous butterfly effect originates
+                    in his work on weather modelling), not to mention the parametrisation of all the physical processes
+                    that you cannot directly resolve, like cloud formation. It takes tons of computational resources. A
+                    single simulation can take hours to run on thousands of CPU cores.</p>
+
+                <p>That's why the ML alternative looks so attractive at first glance. Just train a neural network to
+                    make the prediction. No need to deal with all the messy physics yourself. And once the network is
+                    trained, predictions are fast and cheap. Since the beginning of the deep learning revolution in the
+                    2010s, major companies and institutions have explored the feasibility of this approach: there is
+                    Nvidia's
+                    <a href="https://arxiv.org/abs/2202.11214">FourCastNet</a> (2022), Huawei's <a
+                        href="https://www.nature.com/articles/s41586-023-06185-3">Pangu-Weather</a> (2023), Google's <a
+                        href="https://www.science.org/doi/10.1126/science.adi2336">GraphCast</a> (2023), and ECMWF's
+                    <a href="https://arxiv.org/abs/2406.01465">AIFS</a> (2024).
+                </p>
+
+                <div class="demo reveal">
+                    <div class="demo-head">
+                        <div>
+                            <div class="kind">timeline</div>
+                            <div class="title">A non-exhaustive timeline of ML-based weather prediction models up to
+                                2024.</div>
+                        </div>
+                    </div>
+                    <div class="timeline" id="timeline" role="tablist"></div>
+                    <div class="tinfo" id="tinfo"></div>
+                    <div class="demo-foot">Within less than 6 years, we went from feasibility studies (Dueben &amp;
+                        Bauer), to competitive accuracy (FourCastNet, Pangu, GraphCast), to an operational pipeline
+                        (AIFS).</div>
+                </div>
+
+
+                <h2 id="The-Data">The Data</h2>
+                <p>Of course, as is always the case in machine learning, the performance of a model depends primarily on
+                    the availability of high-quality data. And for a weather prediction model, this generally means we
+                    are talking about ECMWF's own <a href="https://doi.org/10.1002/qj.3803">ERA5</a> dataset.</p>
+
+                <p>ERA5 is what is known as a <em>reanalysis</em>. It is the output of running a classical physics-based
+                    weather forecasting model that continuously assimilates, and optimises for, every observation that
+                    was available at the time (satellite radiances, radiosondes, surface stations, aircraft, buoys). The
+                    result is an hourly, ~31 km resolution, 137-vertical-level global record of the atmosphere
+                    stretching from 1940 to today. Actually, the creation of this dataset, and reanalysis in
+                    general, is a super interesting topic in its own right. I'll have to make a post about that at some
+                    point too. AIFS was trained using the ERA5 data from 1979 up to 2020.</p>
+
+                <p>However, this means ERA5 is not made up of direct observations. It is a combined model-observation
+                    product. Where observations are dense, ERA5 tracks them closely. Where they're sparse, ERA5 is
+                    largely model output. And this means any machine learning model we train will inherit the biases and
+                    errors of the original physics-based model, so we will not get around understanding and
+                    modelling the physics after all. Furthermore, to make a forecast, we need to provide AIFS with the
+                    initial conditions for the atmosphere, which rely on the same physics-derived models that are used
+                    for the traditional forecast. So to make a good ML-based model, we also need a good
+                    physics-based model. At least for now.</p>
+
+                <h3 id="The-Grid">The Grid</h3>
+
+                <p>The native grid of ERA5 is a reduced Gaussian grid denoted N320. A Gaussian grid avoids the pole
+                    problem that simple regular latitude-longitude grids have, where the cell width
+                    collapses to zero at $\pm 90°$, while staying at roughly 28 km near the equator. A Gaussian
+                    grid constructs grid points in a way that keeps the distance between points roughly uniform across
+                    the entire sphere.</p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Grid</th>
+                            <th>Resolution</th>
+                            <th>Number of points</th>
+                            <th>Used by AIFS as</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>N320 (reduced Gaussian)</td>
+                            <td>~31 km</td>
+                            <td>542,080</td>
+                            <td>input / output grid</td>
+                        </tr>
+                        <tr>
+                            <td>O96 (reduced Gaussian)</td>
+                            <td>~110 km</td>
+                            <td>40,320</td>
+                            <td>processor grid</td>
+                        </tr>
+                        <tr>
+                            <td>0.25° lat-lon (for reference)</td>
+                            <td>~28 km equator, &lt;1 km pole</td>
+                            <td>1,038,240</td>
+                            <td>—</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>N320 has roughly half the grid points of an equivalent-resolution lat-lon grid, and the cells are
+                    roughly the same physical size everywhere. Since the N320 is the native output/data structure of
+                    ERA5, the AIFS model uses the same input and output dimensions. This grid has to be passed to the
+                    model in a way that preserves the information about the relations between grid points, and a
+                    meaningful chunk of the architecture has to deal with this irregular geometry.</p>
+
+                <div class="demo reveal">
+                    <div class="demo-head">
+                        <div>
+                            <div class="kind">interactive · grid</div>
+                            <div class="title">Rectangular vs. Gaussian Grids.</div>
+                        </div>
+                        <div class="grid-toggle" id="gridToggle">
+                            <button data-mode="latlon">0.25° lat-lon</button>
+                            <button data-mode="gauss" class="on">Gaussian (schematic)</button>
+                        </div>
+                    </div>
+                    <div class="grid-demo-row">
+                        <div class="grid-panel">
+                            <h5><strong>Map view</strong> · global grid points</h5>
+                            <svg id="gridMap" viewBox="0 0 720 360"></svg>
+                            <div class="grid-stats">
+                                <span>Points: <strong id="gPts">542,080</strong></span>
+                                <span>Δx @ eq: <strong id="gEq">31 km</strong></span>
+                                <span>Δx @ pole: <strong id="gPo">31 km</strong></span>
+                            </div>
+                        </div>
+                        <div class="grid-panel">
+                            <h5><strong>Pole view</strong> · north polar cap</h5>
+                            <svg id="gridPole" viewBox="0 0 360 360"></svg>
+                            <div class="grid-stats">
+                                <span>Cell aspect at 85°: <strong id="gAR">~1:1</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="demo-foot">Toggle the grid type. The lat-lon grid visibly clusters and distorts near the
+                        poles; the reduced Gaussian stays roughly uniform across the sphere.</div>
+                </div>
+
+                <h3 id="The-Input">The Input Variables</h3>
+
+                <p>Per grid point, AIFS sees roughly 90 channels: six pressure-level variables (geopotential, three wind
+                    components, specific humidity, temperature) at 13 vertical levels, plus eight surface variables
+                    (mean sea-level pressure, 2 m temperature, 10 m winds, total column water, etc.), plus static
+                    forcing terms (orography, land-sea mask, insolation, latitude, time-of-day, time-of-year). Two time
+                    slices are fed in per forward pass ($t-6h$ and $t_0$). The output is the same 90-ish channels at
+                    $t+6h$. The hope is that the atmosphere is sufficiently Markovian on six-hour scales for
+                    medium-range forecasts — the state at $t+6h$ is essentially a function of the state at $t$ (with a
+                    small benefit from including $t-6h$ to disambiguate time derivatives). So the model doesn't need a
+                    year of history in order to make a prediction.
+                </p>
+
+                <div class="llm-callout reveal">
+                    <span class="tag">↔ LLM Analogy</span> This differs a bit from language modelling, where we
+                    care about long-range dependencies between tokens. Here, we essentially only use two context tokens
+                    to predict one output token.
+                </div>
+
+                <p>At training time, the input is straight from ERA5. At inference time, the
+                    input comes from ECMWF's operational 4D-Var analysis, which is the best estimate of "now" given the
+                    last twelve hours of observations. AIFS fine-tunes specifically on the operational analyses to close
+                    the train/inference distribution gap.</p>
+
+
+                <h2 id="The-Architecture">The Architecture</h2>
+
+                <p>AIFS follows an <em>encoder &rarr; processor &rarr; decoder</em> pattern. The encoder is a graph
+                    neural network that maps from the high-resolution input reduced Gaussian grid (N320) onto a coarser
+                    processor mesh (a coarse, octahedral reduced Gaussian grid, O96). The processor is a stack of
+                    transformer layers that does the bulk of the computation on the processor mesh. The decoder is a
+                    second graph neural network that maps the processor's output back to the high-resolution grid.</p>
+
+                <div class="demo reveal">
+                    <div class="demo-head">
+                        <div>
+                            <div class="kind">interactive · schematic</div>
+                            <div class="title">Encoder, processor, decoder — what flows through each block</div>
+                        </div>
+                    </div>
+                    <div class="epd-wrap">
+                        <svg id="epdSvg" viewBox="0 0 1000 320" preserveAspectRatio="xMidYMid meet"></svg>
+                    </div>
+                    <div class="epd-cap" id="epdCap">
+                        <div data-id="enc" class="on">
+                            <div class="ttl">block 01 · encoder</div>
+                            <div class="head">N320 → O96 graph mapper</div>
+                            ERA5 input grid (542k nodes) is projected onto the O96 processor grid (40k nodes) by a
+                            bipartite graph-transformer convolution. Each processor node attends to its data-grid
+                            neighbours inside a cut-off radius.
+                        </div>
+                        <div data-id="proc">
+                            <div class="ttl">block 02 · processor</div>
+                            <div class="head">16-layer sliding-window transformer</div>
+                            Pre-norm transformer blocks over the O96 mesh. Attention is windowed along latitude bands;
+                            receptive field grows $L \times w$ with depth.
+                        </div>
+                        <div data-id="dec">
+                            <div class="ttl">block 03 · decoder</div>
+                            <div class="head">O96 → N320 graph mapper</div>
+                            The decoder is bipartite the other way. Each ERA5 output node connects to its three nearest
+                            processor nodes — uniform in-degree gives a clean projection back to full resolution.
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="The-Encoder-Decoder">The Encoder And Decoder</h3>
+
+                <p>Both the encoder and decoder are <em>bipartite</em> graphs — every edge connects a node on one grid
+                    to a node on the other. The connectivity is asymmetric:</p>
+
+                <ul>
+                    <li><strong>Encoder</strong> (N320 → O96): each O96 processor node has incoming edges from all N320
+                        nodes inside a fixed great-circle cut-off radius. </li>
+                    <li><strong>Decoder</strong> (O96 → N320): each N320 output node connects to its three nearest O96
+                        nodes.
+                    </li>
+                </ul>
+
+                <p>Edge features encode geometry — great-circle distance and directions. AIFS
+                    additionally adds eight learnable per-node and per-edge features that are pure model parameters.
+                    The mapper blocks use the graph-transformer convolution from <a
+                        href="https://arxiv.org/abs/2009.03509">Shi et al.
+                        2021</a>. I don't have a lot of experience
+                    with Graph Neural Networks, so we will have to dig into the details in another post. But for now,
+                    let's just treat it as a general encoder setup: We encode the relevant information (values at the
+                    nodes/grid points + relationship to other nodes) and pass them on to the processor.</p>
+
+                <div class="llm-callout reveal">
+                    <span class="tag">↔ LLM Analogy</span> Edge features encode the relationship between nodes, and take
+                    the role of positional encoding in LLMs.
+                </div>
+
+                <h3 id="Processor">Processor: Sliding-Window Transformer</h3>
+
+                <p>The processor is made up of sixteen standard pre-norm transformer layers with multi-head attention.
+                    Since the input consists of 40,320 O96 nodes, full self-attention would need to calculate
+                    $\mathcal{O}(n^2) \approx 1.6\times10^9$ pairwise interactions per layer per head, which would be
+                    excessively expensive. Instead, the processor uses sliding-window attention along latitude bands
+                    (similar to Longformer, Sparse Transformers, and Mistral's SWA). Sliding window in this case means
+                    that the attention window shifts in each layer, meaning the receptive field grows linearly with
+                    depth. Unlike for LLMs, there is no need for a causal mask. Forecasts attend to
+                    the full atmosphere. The "autoregressive" part of AIFS happens at the
+                    rollout level (predicting $t+6h$ from $t$). Within a single forward
+                    pass, attention is fully bidirectional in space.</p>
+
+                <div class="llm-callout reveal">
+                    <span class="tag">↔ LLM Analogy</span> Attention is not calculated over the temporal sequence of
+                    atmospheric states (like the sequence of words in an LLM), but between grid points within
+                    one step.
+                </div>
+
+
+
+
+                <h3 id="Parallelism">Parallelism, Briefly</h3>
+
+                <p>One AIFS instance is split across four A100 40 GB GPUs within a node. The scaling parallelism stack
+                    is the standard large-model toolbox: mixed precision training, activation checkpointing,
+                    tensor parallelism via attention head sharding, and data parallelism. Since sliding-window attention
+                    is used, there is no context parallelisation despite the long sequence length (although it could be
+                    implemented in principle). AIFS also includes node and edge sharding across the graph.</p>
+
+                <h2 id="Training">Training</h2>
+
+                <p>The forward problem is supervised regression: given $x_{t-6h}$ and $x_t$, predict $x_{t+6h}$:</p>
+
+                <p>$$\hat{x}_{t+6} = f_\theta\big(x_{t-6},\, x_t\big).$$</p>
+
+                <p>The loss is an <em>area-weighted</em> mean squared error. The individual loss terms are scaled
+                    empirically per variable, such that each physical quantity has roughly equal contribution.
+                    Additionally, the weights decrease linearly with height, such that lower atmosphere accuracy is more
+                    important than upper atmosphere accuracy. Similar to LLMs, AIFS uses a 3-stage training process: A
+                    <em>pre-training</em> phase, where the
+                    model gets trained to make a single $\hat{x}_{t+6}$ prediction. A <em>rollout</em> phase, where the
+                    model is fed its own predictions from previous steps through twelve six-hour forward passes. And a
+                    <em>fine-tuning</em> phase, where the model gets adapted from fully-processed ERA5 inputs to online
+                    IFS NWP data.
+                </p>
+
+                <div class="llm-callout reveal">
+                    <span class="tag">↔ LLM Analogy</span> In LLMs, the three stages are pretraining, supervised
+                    fine-tuning and reinforcement learning (via human feedback or verifiable reward).
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Phase</th>
+                            <th>Data</th>
+                            <th>Steps</th>
+                            <th>Learning rate</th>
+                            <th>Forecast horizon</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1. Pre-training</td>
+                            <td>ERA5 1979–2020</td>
+                            <td>260,000</td>
+                            <td>cosine, $10^{-4} \to 3\times10^{-7}$</td>
+                            <td>single 6 h step</td>
+                        </tr>
+                        <tr>
+                            <td>2. Rollout fine-tuning</td>
+                            <td>ERA5 1979–2018</td>
+                            <td>up to 12 unrolled steps</td>
+                            <td>$6\times10^{-7}$</td>
+                            <td>6 h → 72 h, increased by 6 h every 1000 steps</td>
+                        </tr>
+                        <tr>
+                            <td>3. Operational fine-tuning</td>
+                            <td>IFS analyses 2019–2020</td>
+                            <td>rollout</td>
+                            <td>$6\times10^{-7}$</td>
+                            <td>same rollout schedule</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>The optimiser used is AdamW with $(\beta_1, \beta_2) = (0.9, 0.95)$. The total wall time is roughly
+                    one week on 64 A100s, and a ten-day forecast takes about two and a half minutes on a single A100.
+                    For reference, the equivalent IFS run takes hours on a thousand CPUs.</p>
+
+                <h2 id="Results">Results</h2>
+
+                <p>To evaluate the performance of the model, the <em>anomaly correlation coefficient</em>
+                    (ACC) is used. The <em>anomaly</em> is the difference between the observed value at a grid point and
+                    the historical average for that value. The ACC measures the (Pearson) correlation between the
+                    forecast
+                    anomaly and the analysis (observed ground truth) anomaly. By focusing on the <em>anomaly</em> rather
+                    than
+                    absolute values, we remove the easily predictable background (e.g. colder temperatures towards the
+                    poles). By focusing on the <em>correlation</em>, we focus on predicting the correct patterns
+                    without having to worry about (regional) biases.</p>
+
+                <p>The headline result: on Northern Hemisphere 500 hPa geopotential ACC, AIFS outperforms IFS at 2-, 6-,
+                    and 10-day lead times across the whole verification period. It performs worse in the upper
+                    atmosphere, which can be traced back to the decreased weight in the loss calculation.</p>
+
+
+                <p>As the forecast horizon increases, the AIFS prediction becomes visibly <em>smoother</em>, and
+                    small-scale structures that are present at day 1 get progressively blurred out as the forecast
+                    unrolls. The same effect shows up in GraphCast, Pangu and other ML-based weather models. This is
+                    caused by the <em>double-penalty problem</em>: if a sharp feature is predicted in the wrong spot, it
+                    gets penalised for predicting a true feature in the wrong spot <em>and</em> for missing the same
+                    feature in the correct spot. This leads to an increased preference of the model to predict mean
+                    values as uncertainty increases. The same problem occurred in pre-diffusion image generator models.
+                    For this reason, the ECMWF has been looking at ensemble-based approaches as well.
+                </p>
+
+
+                <h2 id="Since-The-Paper">What's Next</h2>
+
+                <p>The ECMWF team that built AIFS was quite aware of this smoothing problem from the start and built the
+                    model with the goal of extending the point prediction model to a probabilistic forecasting system.
+                    Probabilistic ensemble forecasts are the standard for physics-based models as well, and come with
+                    the advantage that they would not only solve the blurring problem but also yield uncertainties for
+                    their predictions. They are therefore the obvious next step after this initial model, and that is
+                    exactly the direction the model developers went.
+                </p>
+
+                <p>The paper we have been walking through describes the first, operational AIFS version from 2024. In
+                    the time since, AIFS has been extended in a number of ways, which we will explore in follow-up
+                    posts.
+                    For your own reading, the next papers we will go through are the following:</p>
+
+                <ul>
+                    <li><a href="https://arxiv.org/abs/2412.15832">AIFS-CRPS</a> (2024) is the direct extension of the
+                        AIFS
+                        system to a probablistic system. The model architecture stays the same, but multiple
+                        predictions are made by injecting Gaussian noise into the processor states. The ensemble output
+                        is then scored with a probabilistic score in order to generate a well-calibrated ensemble
+                        forecast. This solves two problems at once: The ensemble members stay sharp without progressive
+                        smoothing and we get the ability to estimate uncertainties on the output.
+
+                    <li><a href="https://arxiv.org/abs/2509.18994">AIFS 1.1</a> (2025) adds physical consistency
+                        constraints in order to avoid unphysical outputs and adds additional output variables.
+
+                    <li><a href="https://www.ecmwf.int/en/about/media-centre/news/2026/ifs-cycle-50r1-aifsv2-live">AIFS
+                            v2</a> (2026) arrived only this month (12 May 2026), taking both the deterministic and
+                        ensemble models to version two and shipping alongside a major update to the physics-based IFS.
+                    </li>
+
+                    <li><a href="https://github.com/ecmwf/anemoi">Anemoi</a> is the open-source, collaboratively
+                        developed framework that covers the whole pipeline, from preparing ML-ready datasets to training
+                        models to running them operationally.</li>
+                </ul>
+
+                <details class="refs">
+                    <summary>References cited</summary>
+                    <ul id="cites"></ul>
+                </details>
+
+
+
+            </div>
+        </article>
+    </main>
+
+    <footer>
+        <div class="social-links">
+            <a href="https://github.com/ChrisBoettner" target="_blank" aria-label="GitHub Profile">
+                <svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor">
+                    <path
+                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                </svg>
+            </a>
+            <a href="mailto:christopher.boettner95@gmail.com" aria-label="Email Me">
+                <svg height="24" width="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6zm-2 0l-8 5-8-5h16zm0 12H4V8l8 5 8-5v10z" />
+                </svg>
+            </a>
+            <a href="https://www.linkedin.com/in/christopher-boettner-87aa21243/" target="_blank"
+                aria-label="LinkedIn Profile">
+                <svg height="24" width="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                </svg>
+            </a>
+        </div>
+        <p>&copy; 2026 Chris Boettner. All rights reserved.</p>
+    </footer>
+
+    <script src="../../scripts/main.js"></script>
+
+    <script>
+        (() => {
+            const COLOR = {
+                warm: '#f59e0b',
+                cool: '#0ea5e9',
+                ink: '#0f172a',
+                soft: '#475569',
+                muted: '#94a3b8',
+                rule: 'rgba(15,23,42,0.10)',
+            };
+            const prefersReduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            /* ── reveal on scroll ── */
+            const revealNodes = [];
+            document.querySelectorAll('.reveal').forEach(el => revealNodes.push(el));
+            if (!prefersReduce && 'IntersectionObserver' in window) {
+                const obs = new IntersectionObserver(es => {
+                    es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); } });
+                }, { rootMargin: '0px 0px -50px 0px', threshold: 0.05 });
+                revealNodes.forEach(el => obs.observe(el));
+            } else {
+                revealNodes.forEach(el => el.classList.add('in'));
+            }
+            setTimeout(() => revealNodes.forEach(el => el.classList.add('in')), 2400);
+
+            /* ── lineage timeline ── */
+            const lineage = [
+                {
+                    y: '2018', n: 'Dueben & Bauer',
+                    title: 'Challenges and design choices for global weather and climate models based on machine learning',
+                    authors: 'Dueben & Bauer 2018, Geoscientific Model Development',
+                    url: 'https://gmd.copernicus.org/articles/11/3999/2018/'
+                },
+                {
+                    y: '2022', n: 'FourCastNet',
+                    title: 'FourCastNet: A Global Data-driven High-resolution Weather Model using Adaptive Fourier Neural Operators',
+                    authors: 'Pathak et al. 2022',
+                    url: 'https://arxiv.org/abs/2202.11214'
+                },
+                {
+                    y: '2023', n: 'Pangu',
+                    title: 'Accurate medium-range global weather forecasting with 3D neural networks',
+                    authors: 'Bi et al. 2023, Nature',
+                    url: 'https://www.nature.com/articles/s41586-023-06185-3'
+                },
+                {
+                    y: '2023', n: 'GraphCast',
+                    title: 'GraphCast: Learning skillful medium-range global weather forecasting',
+                    authors: 'Lam et al. 2023, Science',
+                    url: 'https://www.science.org/doi/10.1126/science.adi2336'
+                },
+                {
+                    y: '2023', n: 'FuXi',
+                    title: 'FuXi: A cascade machine learning forecasting system for 15-day global weather forecast',
+                    authors: 'Chen et al. 2023, npj Climate and Atmospheric Science',
+                    url: 'https://arxiv.org/abs/2306.12873'
+                },
+                {
+                    y: '2023', n: 'Stormer',
+                    title: 'Scaling transformer neural networks for skillful and reliable medium-range weather forecasting',
+                    authors: 'Nguyen et al. 2023',
+                    url: 'https://arxiv.org/abs/2312.03876'
+                },
+                {
+                    y: '2024', n: 'AIFS',
+                    title: 'AIFS — ECMWF\'s data-driven forecasting system',
+                    authors: 'Lang et al. 2024',
+                    url: 'https://arxiv.org/abs/2406.01465'
+                },
+            ];
+            const tl = document.getElementById('timeline');
+            const ti = document.getElementById('tinfo');
+            lineage.forEach((l, i) => {
+                const b = document.createElement('button');
+                b.className = 'tnode' + (i === lineage.length - 1 ? ' active' : '');
+                b.innerHTML = `<div class="year">${l.y}</div><div class="dot"></div><div class="name">${l.n}</div>`;
+                b.addEventListener('click', () => {
+                    [...tl.children].forEach(c => c.classList.remove('active'));
+                    b.classList.add('active');
+                    ti.innerHTML = paperInfo(l);
+                });
+                tl.appendChild(b);
+            });
+            function paperInfo(l) {
+                return `<div class="h">${l.title}</div><div class="b">${l.authors} · <a href="${l.url}" target="_blank" rel="noopener">View paper ↗</a></div>`;
+            }
+            ti.innerHTML = paperInfo(lineage[lineage.length - 1]);
+
+            /* ── grid comparison ── */
+            const gMap = document.getElementById('gridMap');
+            const gPole = document.getElementById('gridPole');
+            let gridMode = 'gauss';
+            function renderGrids() {
+                const W = 720, H = 360;
+                const points = [], polePts = [];
+                if (gridMode === 'latlon') {
+                    const step = 8;
+                    for (let lat = -88; lat <= 88; lat += step) {
+                        for (let lon = -180; lon <= 180; lon += step) {
+                            const x = (lon + 180) / 360 * W;
+                            const y = (90 - lat) / 180 * H;
+                            points.push([x, y, lat]);
+                            if (lat > 30) {
+                                const r = (90 - lat) / 60 * 160;
+                                const th = lon * Math.PI / 180;
+                                polePts.push([180 + r * Math.sin(th), 180 - r * Math.cos(th)]);
+                            }
+                        }
+                    }
+                } else {
+                    const ringsPerHemi = 22;
+                    for (let h = 0; h < 2 * ringsPerHemi; h++) {
+                        const ringFromPole = (h < ringsPerHemi) ? (h + 1) : (2 * ringsPerHemi - h);
+                        const sign = (h < ringsPerHemi) ? +1 : -1;
+                        const lat = sign * (90 - (ringFromPole - 0.5) * (90 / ringsPerHemi));
+                        const nl = 16 + 4 * ringFromPole;
+                        for (let j = 0; j < nl; j++) {
+                            const lon = -180 + (j + 0.5) * 360 / nl;
+                            const x = (lon + 180) / 360 * W;
+                            const y = (90 - lat) / 180 * H;
+                            points.push([x, y, lat]);
+                            if (lat > 30) {
+                                const r = (90 - lat) / 60 * 160;
+                                const th = lon * Math.PI / 180;
+                                polePts.push([180 + r * Math.sin(th), 180 - r * Math.cos(th)]);
+                            }
+                        }
+                    }
+                }
+                const colour = gridMode === 'latlon' ? COLOR.cool : COLOR.warm;
+                let svg = `<rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff" stroke="${COLOR.rule}"/>` +
+                    `<line x1="0" y1="${H / 2}" x2="${W}" y2="${H / 2}" stroke="${COLOR.rule}" stroke-dasharray="3 4"/>` +
+                    `<line x1="0" y1="${(90 - 23.5) / 180 * H}" x2="${W}" y2="${(90 - 23.5) / 180 * H}" stroke="rgba(15,23,42,0.05)"/>` +
+                    `<line x1="0" y1="${(90 + 23.5) / 180 * H}" x2="${W}" y2="${(90 + 23.5) / 180 * H}" stroke="rgba(15,23,42,0.05)"/>`;
+                points.forEach(p => {
+                    svg += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${gridMode === 'latlon' ? 1.3 : 1.5}" fill="${colour}" opacity="${gridMode === 'latlon' && Math.abs(p[2]) > 70 ? 0.95 : 0.7}"/>`;
+                });
+                gMap.innerHTML = svg;
+
+                let svg2 = `<circle cx="180" cy="180" r="160" fill="#ffffff" stroke="${COLOR.rule}"/>` +
+                    `<circle cx="180" cy="180" r="80" fill="none" stroke="rgba(15,23,42,0.05)"/>` +
+                    `<circle cx="180" cy="180" r="160" fill="none" stroke="${COLOR.rule}" stroke-dasharray="2 4"/>` +
+                    `<text x="180" y="174" text-anchor="middle" font-family="Fira Code" font-size="9" fill="${COLOR.muted}">90°N</text>` +
+                    `<text x="180" y="100" text-anchor="middle" font-family="Fira Code" font-size="9" fill="${COLOR.muted}">60°N</text>` +
+                    `<text x="180" y="20"  text-anchor="middle" font-family="Fira Code" font-size="9" fill="${COLOR.muted}">30°N</text>`;
+                polePts.forEach(p => {
+                    svg2 += `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${gridMode === 'latlon' ? 1.4 : 1.5}" fill="${colour}" opacity="0.8"/>`;
+                });
+                gPole.innerHTML = svg2;
+
+                document.getElementById('gPts').textContent = gridMode === 'latlon' ? '1,038,240' : '542,080';
+                document.getElementById('gEq').textContent = gridMode === 'latlon' ? '~28 km' : '~31 km';
+                document.getElementById('gPo').textContent = gridMode === 'latlon' ? '< 1 km' : '~31 km';
+                document.getElementById('gAR').textContent = gridMode === 'latlon' ? '~30:1 (collapsing)' : '~1:1';
+            }
+            renderGrids();
+            document.querySelectorAll('#gridToggle button').forEach(b => {
+                b.addEventListener('click', () => {
+                    document.querySelectorAll('#gridToggle button').forEach(x => x.classList.remove('on'));
+                    b.classList.add('on');
+                    gridMode = b.dataset.mode;
+                    renderGrids();
+                });
+            });
+
+            /* ── EPD schematic ── */
+            const epdSvg = document.getElementById('epdSvg');
+            function renderEPD(active = 'enc') {
+                const blocks = [
+                    { id: 'enc', x: 70, y: 110, w: 200, h: 100, label: 'ENCODER', sub: 'GNN mapper' },
+                    { id: 'proc', x: 400, y: 80, w: 200, h: 160, label: 'PROCESSOR', sub: '16× transformer' },
+                    { id: 'dec', x: 730, y: 110, w: 200, h: 100, label: 'DECODER', sub: 'GNN mapper' },
+                ];
+                function dotgrid(cx, cy, w, h, n, op) {
+                    let s = '';
+                    for (let i = 0; i < n; i++) {
+                        for (let j = 0; j < n; j++) {
+                            const x = cx + (i / (n - 1)) * w;
+                            const y = cy + (j / (n - 1)) * h;
+                            s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="1.2" fill="${COLOR.ink}" opacity="${op}"/>`;
+                        }
+                    }
+                    return s;
+                }
+                let svg = '';
+                svg += dotgrid(15, 50, 50, 220, 8, 0.5);
+                svg += dotgrid(935, 50, 50, 220, 8, 0.5);
+                svg += `<text x="40" y="290" text-anchor="middle" font-family="Fira Code" font-size="10" fill="${COLOR.soft}">N320 input</text>`;
+                svg += `<text x="960" y="290" text-anchor="middle" font-family="Fira Code" font-size="10" fill="${COLOR.soft}">N320 output</text>`;
+                svg += `<text x="40" y="48" font-family="Fira Code" font-size="9" fill="${COLOR.muted}" text-anchor="middle">542,080</text>`;
+                svg += `<text x="960" y="48" font-family="Fira Code" font-size="9" fill="${COLOR.muted}" text-anchor="middle">542,080</text>`;
+                svg += `<line x1="76" y1="160" x2="60" y2="160" stroke="rgba(15,23,42,0.35)"/>`;
+                svg += `<path d="M 270 160 L 400 160" stroke="rgba(15,23,42,0.45)" fill="none" marker-end="url(#arrA)"/>`;
+                svg += `<path d="M 600 160 L 730 160" stroke="rgba(15,23,42,0.45)" fill="none" marker-end="url(#arrA)"/>`;
+                svg += `<path d="M 930 160 L 945 160" stroke="rgba(15,23,42,0.45)" fill="none" marker-end="url(#arrA)"/>`;
+                svg += dotgrid(380, 100, 240, 120, 7, 0.25);
+                blocks.forEach(bl => {
+                    const on = bl.id === active;
+                    const stroke = on ? COLOR.warm : 'rgba(15,23,42,0.45)';
+                    const fill = on ? '#fffbeb' : '#ffffff';
+                    const fcol = on ? COLOR.warm : COLOR.ink;
+                    svg += `<rect data-id="${bl.id}" x="${bl.x}" y="${bl.y}" width="${bl.w}" height="${bl.h}" fill="${fill}" stroke="${stroke}" stroke-width="${on ? 2 : 1}" rx="4" style="cursor:pointer;"/>`;
+                    svg += `<text x="${bl.x + bl.w / 2}" y="${bl.y + bl.h / 2 - 2}" text-anchor="middle" font-family="Inter, sans-serif" font-weight="700" font-size="${on ? 22 : 20}" fill="${fcol}" style="pointer-events:none;">${bl.label}</text>`;
+                    svg += `<text x="${bl.x + bl.w / 2}" y="${bl.y + bl.h / 2 + 22}" text-anchor="middle" font-family="Fira Code" font-size="11" fill="${on ? COLOR.warm : COLOR.muted}" style="pointer-events:none;">${bl.sub}</text>`;
+                });
+                svg += `<text x="500" y="296" text-anchor="middle" font-family="Fira Code" font-size="10" fill="${COLOR.muted}">O96 processor grid · 40,320 nodes</text>`;
+                epdSvg.innerHTML = `<defs><marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="rgba(15,23,42,0.45)"/></marker></defs>` + svg;
+                epdSvg.querySelectorAll('rect[data-id]').forEach(r => {
+                    r.addEventListener('click', () => { renderEPD(r.dataset.id); syncEPDCaps(r.dataset.id); });
+                });
+            }
+            function syncEPDCaps(active) {
+                document.querySelectorAll('#epdCap > div').forEach(d => d.classList.toggle('on', d.dataset.id === active));
+            }
+            renderEPD('enc');
+            document.querySelectorAll('#epdCap > div').forEach(d => {
+                d.addEventListener('click', () => { renderEPD(d.dataset.id); syncEPDCaps(d.dataset.id); });
+            });
+
+            /* ── citations ── */
+            const cites = [
+                'Beltagy et al. 2020 — Longformer',
+                'Bi et al. 2023 — Pangu-Weather',
+                'Chen et al. 2023 — FuXi',
+                'Child et al. 2019 — Generating long sequences with sparse transformers',
+                'Dueben & Bauer 2018 — Challenges and design choices for ML-based weather and climate models',
+                'Hersbach et al. 2020 — The ERA5 global reanalysis',
+                'Jiang et al. 2023 — Mistral 7B',
+                'Lam et al. 2023 — GraphCast',
+                'Lang et al. 2024 — AIFS: ECMWF\'s data-driven forecasting system',
+                'Lang et al. 2024 — AIFS-CRPS',
+                'Moldovan et al. 2025 — An update to ECMWF\'s machine-learned weather forecast model AIFS',
+                'Nguyen et al. 2023 — Stormer',
+                'Pathak et al. 2022 — FourCastNet',
+                'Shi et al. 2021 — UniMP / graph transformer convolution',
+            ];
+            const ul = document.getElementById('cites');
+            cites.forEach(c => { const li = document.createElement('li'); li.textContent = c; ul.appendChild(li); });
+
+        })();
+    </script>
+</body>
+
+</html>
