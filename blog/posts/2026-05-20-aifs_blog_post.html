@@ -1579,7 +1579,7 @@
 
 
                 // gradient track (drawn first, sits behind)
-                svg += arr(884, BUS_Y, 176, BUS_Y, 'rgrad', 'rgrad');
+                svg += arr(stateC(STEPS), BUS_Y, 176, BUS_Y, 'rgrad', 'rgrad'); // bus begins at the last loss-drop
                 for (let k = 1; k <= STEPS; k++) svg += arr(stateC(k), LOSS_Y + LOSS_R, stateC(k), BUS_Y, 'rgrad', 'rgrad'); // loss → bus (each step contributes a term)
                 svg += `<text x="115" y="${BUS_Y + 6}" text-anchor="start" font-family="Fira Code" font-size="18" fill="${COLOR.cool}">∂ℒ/∂θ</text>`;
 
