@@ -23,7 +23,7 @@ body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg-color);
     background-image: radial-gradient(circle at 20% 80%, rgba(249, 158, 11, 0.1) 0%, transparent 50%),
-                      radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.1) 0%, transparent 50%);
+        radial-gradient(circle at 80% 20%, rgba(14, 165, 233, 0.1) 0%, transparent 50%);
     color: var(--text-color);
     line-height: 1.6;
     padding: 2rem;
@@ -98,14 +98,16 @@ h1 {
 }
 
 .article a {
-    color: var(--link-color); /* Use the link color */
+    color: var(--link-color);
+    /* Use the link color */
     text-decoration: none;
     font-size: 1.5rem;
     font-weight: bold;
     display: block;
     margin-bottom: 0.5rem;
     letter-spacing: -0.011em;
-    transition: text-decoration 0.3s ease; /* Smooth underline transition */
+    transition: text-decoration 0.3s ease;
+    /* Smooth underline transition */
 }
 
 .article a:hover {
@@ -140,8 +142,10 @@ h1 {
 }
 
 .publications-section ol {
-    list-style-type: decimal; /* Keep the numbered list */
-    padding-left: 2rem; /* Indent the list items */
+    list-style-type: decimal;
+    /* Keep the numbered list */
+    padding-left: 2rem;
+    /* Indent the list items */
 }
 
 .publications-section li {
@@ -151,12 +155,14 @@ h1 {
 
 .publications-section li cite {
     font-style: italic;
-    display: block; /* Make the citation a block element */
+    display: block;
+    /* Make the citation a block element */
     margin-bottom: 0.5rem;
 }
 
 .publications-section li a {
-    color: var(--link-color); /* Style the links in publications */
+    color: var(--link-color);
+    /* Style the links in publications */
     text-decoration: none;
     transition: text-decoration 0.3s ease;
 }
@@ -468,7 +474,7 @@ h1 {
     margin: 2rem 0 1rem;
 }
 
-.blog-post-content ul, 
+.blog-post-content ul,
 .blog-post-content ol {
     margin-bottom: 1.5rem;
     padding-left: 2rem;
@@ -647,8 +653,13 @@ footer .social-links a:hover {
 }
 
 @keyframes solar-glow {
-    0% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.6), 0 0 40px rgba(251, 191, 36, 0.3); }
-    100% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.8), 0 0 60px rgba(251, 191, 36, 0.4); }
+    0% {
+        box-shadow: 0 0 20px rgba(251, 191, 36, 0.6), 0 0 40px rgba(251, 191, 36, 0.3);
+    }
+
+    100% {
+        box-shadow: 0 0 30px rgba(251, 191, 36, 0.8), 0 0 60px rgba(251, 191, 36, 0.4);
+    }
 }
 
 .orbit {
@@ -722,23 +733,43 @@ footer .social-links a:hover {
 }
 
 @keyframes orbit-1 {
-    from { transform: translate(-50%, -50%) rotate(20deg); }
-    to { transform: translate(-50%, -50%) rotate(380deg); }
+    from {
+        transform: translate(-50%, -50%) rotate(20deg);
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotate(380deg);
+    }
 }
 
 @keyframes orbit-2 {
-    from { transform: translate(-50%, -50%) rotate(60deg); }
-    to { transform: translate(-50%, -50%) rotate(430deg); }
+    from {
+        transform: translate(-50%, -50%) rotate(60deg);
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotate(430deg);
+    }
 }
 
 @keyframes orbit-3 {
-    from { transform: translate(-50%, -50%) rotate(180deg); }
-    to { transform: translate(-50%, -50%) rotate(540deg); }
+    from {
+        transform: translate(-50%, -50%) rotate(180deg);
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotate(540deg);
+    }
 }
 
 @keyframes orbit-4 {
-    from { transform: translate(-50%, -50%) rotate(270deg); }
-    to { transform: translate(-50%, -50%) rotate(630deg); }
+    from {
+        transform: translate(-50%, -50%) rotate(270deg);
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotate(630deg);
+    }
 }
 
 .hero-content {
@@ -793,11 +824,14 @@ footer .social-links a:hover {
 }
 
 @keyframes sparkle {
-    0%, 100% { 
+
+    0%,
+    100% {
         opacity: 0.6;
         transform: translateY(-50%) scale(1);
     }
-    50% { 
+
+    50% {
         opacity: 1;
         transform: translateY(-50%) scale(1.2);
     }
@@ -829,7 +863,7 @@ footer .social-links a:hover {
     justify-content: center;
     gap: 1rem;
     margin-bottom: 3rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .role-text {
@@ -837,6 +871,7 @@ footer .social-links a:hover {
     font-weight: 500;
     color: var(--accent-color);
     letter-spacing: 0.5px;
+    white-space: wrap;
 }
 
 .role-divider {
@@ -877,7 +912,7 @@ footer .social-links a:hover {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
     transition: left 0.6s;
 }
 
@@ -931,8 +966,15 @@ footer .social-links a:hover {
 
 /* --- Animations --- */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 main {
@@ -1066,24 +1108,24 @@ main {
     .writing-section h2 {
         font-size: 2rem;
     }
-    
+
     .project-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .role-container {
         flex-direction: column;
         gap: 0.5rem;
     }
-    
+
     .role-divider {
         display: none;
     }
-    
+
     .cta-container {
         gap: 1.5rem;
     }
-    
+
     .primary-cta {
         padding: 1rem 2rem;
         font-size: 1rem;
@@ -1094,27 +1136,42 @@ main {
     .hero-section h1 {
         font-size: 2.8rem;
     }
-    
+
     .nav-links {
         gap: 0.8rem;
     }
-    
+
     .hero-section {
         padding: 4rem 0 6rem;
     }
-    
+
     .solar-system {
         width: 200px;
         height: 200px;
         top: 5%;
         right: 5%;
     }
-    
-    .orbit-1 { width: 60px; height: 60px; }
-    .orbit-2 { width: 80px; height: 80px; }
-    .orbit-3 { width: 100px; height: 100px; }
-    .orbit-4 { width: 120px; height: 120px; }
-    
+
+    .orbit-1 {
+        width: 60px;
+        height: 60px;
+    }
+
+    .orbit-2 {
+        width: 80px;
+        height: 80px;
+    }
+
+    .orbit-3 {
+        width: 100px;
+        height: 100px;
+    }
+
+    .orbit-4 {
+        width: 120px;
+        height: 120px;
+    }
+
     .sun {
         width: 18px;
         height: 18px;
