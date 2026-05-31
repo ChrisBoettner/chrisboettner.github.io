@@ -1,0 +1,2086 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>From Deterministic Weather Forecasts To Ensembles | Chris Boettner</title>
+    <meta name="description"
+        content="Notes on AIFS-CRPS, the probabilistic follow-up to ECMWF's AIFS — how a proper-scoring-rule training loss turns a blurry deterministic forecast into a sharp, calibrated ensemble.">
+    <meta name="keywords" content="Ensembles, CRPS, Weather Forecasting, Paper Notes, Scoring Rules">
+
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:title" content="From Deterministic Weather Forecasts To Ensembles | Chris Boettner">
+    <meta property="og:description"
+        content="Notes on AIFS-CRPS — turning the deterministic AIFS into a calibrated ensemble forecast via a proper scoring rule.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://chrisboettner.github.io/blog/posts/2026-06-02-aifs_crps_blog_post.html">
+
+    <!-- Twitter Card data -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="From Deterministic Weather Forecasts To Ensembles | Chris Boettner">
+    <meta name="twitter:description"
+        content="Notes on AIFS-CRPS — turning the deterministic AIFS into a calibrated ensemble forecast via a proper scoring rule.">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22256%22 height=%22256%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23121212%22></rect><path fill=%22%23fff%22 d=%22M30.92 71.12L30.92 29.12Q34.08 28.36 38.74 27.64Q43.40 26.92 49.36 26.92Q55.52 26.92 59.76 28.44Q64.00 29.96 66.40 32.88Q68.80 35.80 68.80 40.16Q68.80 44.12 66.32 46.96Q63.84 49.80 59.84 51.24Q64.84 52.44 67.68 55.52Q70.52 58.60 70.52 63.84Q70.52 68.44 68.06 71.60Q65.60 74.76 60.96 76.40Q56.32 78.04 49.96 78.04Q43.96 78.04 38.80 77.40Q33.64 76.76 30.92 76.12L30.92 71.12ZM39.00 49.16L48.76 49.16Q54.32 49.16 57.12 47.08Q59.92 45.00 59.92 40.88Q59.92 38.32 58.68 36.64Q57.44 34.96 55.00 34.12Q52.56 33.28 48.76 33.28Q46.36 33.28 44.08 33.52Q41.80 33.76 39.96 34.12L39.00 34.36L39.00 49.16ZM39.00 71.12Q41.08 71.48 43.64 71.72Q46.20 71.96 49.24 71.96Q55.12 71.96 58.56 69.92Q62.00 67.88 62.00 63.28Q62.00 58.72 58.48 56.52Q54.96 54.32 48.76 54.32L39.00 54.32L39.00 71.12Z%22></path></svg>">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+
+    <!-- MathJax for LaTeX rendering -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --demo-bg: #ffffff;
+            --demo-border: #cbd5e1;
+            --demo-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+            --kicker: #f59e0b;
+            --data-warm: #f59e0b;
+            --data-cool: #0ea5e9;
+            --muted: #94a3b8;
+            --soft-bg: #f1f5f9;
+            --rule: rgba(15, 23, 42, 0.08);
+        }
+
+        .blog-post-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .blog-post-content thead th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid #475569;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .blog-post-content tbody td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .blog-post-content tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .blog-post-content tbody tr:hover {
+            background-color: rgba(241, 245, 249, 0.6);
+        }
+
+        /* LLM callouts — pulled blockquotes, amber left border (inline fallback) */
+        .llm-callout {
+            border-left: 3px solid var(--kicker);
+            background: linear-gradient(90deg, rgba(245, 158, 11, 0.06), transparent 70%);
+            padding: 14px 18px;
+            margin: 1.4rem 0;
+            font-style: italic;
+            color: #334155;
+            font-size: 0.98rem;
+            line-height: 1.55;
+        }
+
+        .llm-callout .tag {
+            display: inline-block;
+            font-family: 'Fira Code', monospace;
+            font-style: normal;
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--kicker);
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        /* Sidebar gutter for LLM callouts on wide screens. */
+        @media (min-width: 1000px) {
+            .blog-post-content {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) 280px;
+                column-gap: 40px;
+                align-items: start;
+            }
+
+            .blog-post-content>* {
+                grid-column: 1;
+                min-width: 0;
+            }
+
+            .blog-post-content>.llm-callout {
+                grid-column: 2;
+                margin: 0;
+                padding: 10px 0 10px 14px;
+                background: none;
+                border-left-width: 2px;
+                font-size: 0.88rem;
+                line-height: 1.55;
+            }
+
+            .blog-post-content>.llm-callout .tag {
+                display: block;
+                font-size: 10px;
+                margin: 0 0 6px;
+            }
+        }
+
+        /* TL;DR stat cards */
+        .tldr-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin: 1.5rem 0 1rem;
+        }
+
+        @media (max-width: 720px) {
+            .tldr-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stat-card {
+            background: var(--soft-bg);
+            border: 1px solid var(--rule);
+            border-radius: 8px;
+            padding: 20px 22px;
+        }
+
+        .stat-card .label {
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-weight: 700;
+            font-size: 38px;
+            line-height: 1;
+            color: var(--data-cool);
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .value small {
+            font-size: 0.4em;
+            color: #475569;
+            margin-left: 6px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+        }
+
+        .stat-card .caption {
+            font-size: 0.9rem;
+            color: #475569;
+            line-height: 1.5;
+        }
+
+        /* Demo wrapper */
+        .demo {
+            margin: 1.8rem 0;
+            background: var(--demo-bg);
+            border: 1px solid var(--demo-border);
+            border-radius: 10px;
+            padding: 22px;
+            box-shadow: var(--demo-shadow);
+        }
+
+        .demo-head {
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--rule);
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .demo-head .kind {
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--kicker);
+            font-weight: 600;
+        }
+
+        .demo-head .title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin: 4px 0 0;
+        }
+
+        .demo-foot {
+            margin-top: 14px;
+            font-size: 0.88rem;
+            color: #475569;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        /* CRPS visualiser */
+        .crps-row {
+            display: grid;
+            grid-template-columns: 1fr 240px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 720px) {
+            .crps-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .crps-panel {
+            background: var(--soft-bg);
+            border: 1px solid var(--rule);
+            border-radius: 6px;
+            padding: 14px;
+        }
+
+        .crps-panel svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .crps-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .crps-slider {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .crps-slider label {
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .crps-slider label strong {
+            color: #0f172a;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+
+        .crps-slider input[type="range"] {
+            width: 100%;
+            accent-color: var(--kicker);
+        }
+
+        .crps-readout {
+            background: #fff;
+            border: 1px solid var(--rule);
+            border-radius: 6px;
+            padding: 12px 14px;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.7;
+            color: #334155;
+        }
+
+        .crps-readout .big {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--data-cool);
+            font-family: 'Inter', sans-serif;
+            display: block;
+            margin-bottom: 4px;
+            letter-spacing: -0.01em;
+        }
+
+        .crps-readout .row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+        }
+
+        .crps-readout .row strong {
+            color: #0f172a;
+        }
+
+        .crps-preset {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .crps-preset button {
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 6px 10px;
+            background: #fff;
+            border: 1px solid var(--demo-border);
+            color: #475569;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .crps-preset button:hover {
+            border-color: var(--kicker);
+            color: var(--kicker);
+        }
+
+        /* Conditional LayerNorm block schematic (mirrors post 1 block widget) */
+        .clnorm-row {
+            display: grid;
+            grid-template-columns: minmax(0, 320px) 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 720px) {
+            .clnorm-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .clnorm-diagram {
+            background: var(--soft-bg);
+            border: 1px solid var(--rule);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .clnorm-diagram svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .clnorm-info {
+            padding: 16px 20px;
+            background: var(--soft-bg);
+            border: 1px solid var(--rule);
+            border-radius: 6px;
+            min-height: 140px;
+            align-self: stretch;
+        }
+
+        .clnorm-info .ttl {
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--kicker);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .clnorm-info .head {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+
+        .clnorm-info .b {
+            font-size: 0.93rem;
+            color: #334155;
+            line-height: 1.55;
+        }
+
+        .clnorm-info .b code {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            background: rgba(245, 158, 11, 0.08);
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: #92400e;
+        }
+
+        /* ── Low-pass (down/upsampling) widget ── */
+        .lp-toggle {
+            display: inline-flex;
+            border: 1px solid var(--rule);
+            border-radius: 7px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .lp-btn {
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            padding: 7px 14px;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .lp-btn + .lp-btn {
+            border-left: 1px solid var(--rule);
+        }
+
+        .lp-btn:hover {
+            color: #0f172a;
+        }
+
+        .lp-btn.active {
+            background: #fffbeb;
+            color: #b45309;
+        }
+
+        .lp-figure {
+            background: var(--soft-bg);
+            border: 1px solid var(--rule);
+            border-radius: 6px;
+            padding: 14px 12px;
+        }
+
+        .lp-figure svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        /* ── Ensemble training pipeline ──────────────────────────────────
+           Horizontal flow of "decks". Every stage that is M-fold (states,
+           noise, model instances, forecasts) is drawn as a stack of cards.
+           One shared flexbox row keeps everything on a single baseline. */
+        .ens-wrap {
+            position: relative;
+            padding: 44px 4px 6px;
+        }
+
+        .ens-flow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            row-gap: 22px;
+        }
+
+        /* a deck = fixed footprint that already contains the card offsets */
+        .ens-deck {
+            --cw: 104px;     /* card width  */
+            --ch: 76px;      /* card height */
+            --off: 7px;      /* per-card diagonal offset */
+            position: relative;
+            width: calc(var(--cw) + 2 * var(--off));
+            height: calc(var(--ch) + 2 * var(--off));
+            cursor: pointer;
+            flex: 0 0 auto;
+        }
+
+        /* a single card (no stack) — used for the shared initial state and the y target */
+        .ens-deck.single {
+            width: var(--cw);
+            height: var(--ch);
+        }
+
+        .ens-card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: var(--cw);
+            height: var(--ch);
+            border-radius: 7px;
+            overflow: hidden;
+            border: 1px solid rgba(15, 23, 42, 0.18);
+            background: #fff;
+            box-shadow: 0 6px 14px -8px rgba(15, 23, 42, 0.4);
+            transition: border-color 220ms ease, box-shadow 220ms ease;
+        }
+
+        /* back-to-front: card 3 sits deepest (bottom-right), card 1 on top */
+        .ens-card:nth-child(3) { transform: translate(calc(2 * var(--off)), calc(2 * var(--off))); z-index: 1; }
+        .ens-card:nth-child(2) { transform: translate(var(--off), var(--off)); z-index: 2; }
+        .ens-card:nth-child(1) { transform: translate(0, 0); z-index: 3; }
+
+        .ens-deck.focus .ens-card { border-color: var(--kicker); }
+        .ens-deck.focus .ens-card:nth-child(1) {
+            box-shadow: 0 10px 22px -10px rgba(245, 158, 11, 0.55);
+        }
+
+        /* card visual fills.
+           field = weather pattern (background); map = thin coastline outline
+           drawn ON TOP as a subtle geographic reference. */
+        .ens-card svg.field {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            mix-blend-mode: multiply;
+            opacity: 0.8;
+        }
+
+        .ens-card img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            /* contain (not cover): the map is a tall square and Europe spans its
+               full height, so cover would crop off Scandinavia or Spain. */
+            object-fit: contain;
+            object-position: center;
+            /* the landmass sits low in the square PNG (arctic whitespace above),
+               so nudge it up to centre Europe in the card */
+            transform: translateY(-30px);
+            opacity: 0.85;
+            /* the PNG has a white background, so multiply makes it vanish and
+               leaves only the coastline; a light saturate/contrast keeps white
+               white (no grey box) while keeping the amber outline a natural,
+               subtle tone rather than neon. */
+            mix-blend-mode: multiply;
+            filter: saturate(12.2) contrast(1.15);
+        }
+
+        .ens-card .noise-bg {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+
+        .ens-card svg.noise {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .ens-card .glyph {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* model card (f_θ) — amber tint, glyph centred.
+           NOTE: centred via text-align + line-height (not flex) so the
+           inline <sub> keeps its subscript baseline. */
+        .ens-card.net {
+            background: linear-gradient(180deg, #ffffff 0%, #fef3c7 100%);
+            border-color: rgba(245, 158, 11, 0.5);
+        }
+
+        .ens-card.net .glyph {
+            text-align: center;
+            line-height: var(--ch);
+            font-family: 'STIX Two Math', 'Cambria Math', 'Latin Modern Math', Cambria, Georgia, serif;
+            font-style: italic;
+            font-size: 27px;
+            color: #78350f;
+        }
+
+        .ens-card.net .glyph sub {
+            font-size: 0.5em;
+            vertical-align: -0.32em;
+            margin-left: 1px;
+            font-style: italic;
+        }
+
+        /* "shared θ" tag pinned under the model stack — signals that the M
+           instances are the same network (one set of weights), not M models */
+        .ens-net-badge {
+            position: absolute;
+            left: calc(var(--cw) / 2 + var(--off));
+            bottom: -11px;
+            transform: translateX(-50%);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            color: #fde68a;
+            font-family: 'Fira Code', monospace;
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            padding: 2px 8px;
+            border-radius: 999px;
+            white-space: nowrap;
+            z-index: 6;
+            pointer-events: none;
+            box-shadow: 0 4px 10px -4px rgba(15, 23, 42, 0.55);
+        }
+
+        .ens-flow.has-focus .ens-deck:not(.focus) .ens-net-badge { opacity: 0.5; }
+
+        /* target card (y) */
+        /* a card with a label sitting just above it */
+        .ens-card-lbl {
+            position: relative;
+        }
+
+        .ens-clbl {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: #475569;
+        }
+
+        /* the "+" that combines state and noise into the model input */
+        .ens-plus {
+            font-family: 'STIX Two Math', Cambria, Georgia, serif;
+            font-size: 24px;
+            color: var(--muted);
+            line-height: 1;
+            padding: 4px 0;
+            user-select: none;
+        }
+
+        /* a labelled input column: state deck, +, noise deck stacked */
+        .ens-inputs {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
+
+        /* arrow connectors between stages */
+        .ens-conn {
+            flex: 0 0 auto;
+            width: 38px;
+            height: 28px;
+        }
+
+        .ens-conn.v {
+            width: 28px;
+            height: 30px;
+        }
+
+        .ens-conn svg { width: 100%; height: 100%; overflow: visible; }
+
+        /* loss column: afCRPS node sits on the flow baseline, with the single
+           y target floated directly above it (so the incoming arrow from the
+           forecasts points straight at the afCRPS node). */
+        .ens-loss-col {
+            position: relative;
+            flex: 0 0 auto;
+        }
+
+        .ens-target-above {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+        }
+
+        .ens-loss-node {
+            padding: 12px 16px;
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            border-radius: 8px;
+            color: #fef3c7;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            box-shadow: 0 12px 24px -12px rgba(15, 23, 42, 0.55);
+            cursor: pointer;
+            transition: box-shadow 220ms ease;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .ens-loss-node:hover,
+        .ens-loss-node.focus {
+            box-shadow: 0 16px 30px -10px rgba(245, 158, 11, 0.45);
+        }
+
+        /* dimming when another block is in focus */
+        .ens-flow.has-focus .ens-deck:not(.focus),
+        .ens-flow.has-focus .ens-loss-node:not(.focus),
+        .ens-flow.has-focus .ens-plus,
+        .ens-flow.has-focus .ens-conn { opacity: 0.4; }
+
+        .ens-flow.has-focus .ens-deck:not(.focus) { filter: saturate(0.65); }
+
+        .ens-deck, .ens-loss-node, .ens-plus, .ens-conn {
+            transition: opacity 220ms ease, filter 220ms ease;
+        }
+
+        /* side caption */
+        .ens-caption {
+            margin-top: 20px;
+            padding: 14px 18px;
+            background: var(--soft-bg);
+            border: 1px solid var(--rule);
+            border-radius: 6px;
+            font-size: 0.92rem;
+            color: #334155;
+            line-height: 1.6;
+            min-height: 60px;
+        }
+
+        .ens-caption .ttl {
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--kicker);
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        @media (max-width: 720px) {
+            .ens-conn { display: none; }
+            .ens-flow { gap: 16px; }
+        }
+
+        /* Reveal */
+        .reveal {
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 600ms ease, transform 600ms ease;
+        }
+
+        .reveal.in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
+        }
+
+        @media print {
+
+            .reveal,
+            .reveal.in {
+                opacity: 1 !important;
+                transform: none !important;
+            }
+        }
+
+        /* References */
+        .refs {
+            margin-top: 2.5rem;
+            background: var(--soft-bg);
+            border-radius: 8px;
+            padding: 14px 18px;
+            font-size: 0.88rem;
+        }
+
+        .refs summary {
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--kicker);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .refs ul {
+            list-style: none;
+            padding: 12px 0 0;
+            column-count: 2;
+            column-gap: 24px;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 720px) {
+            .refs ul {
+                column-count: 1;
+            }
+        }
+
+        .refs li {
+            break-inside: avoid;
+            color: #334155;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <a href="/" class="logo">CB.</a>
+        <div class="nav-links">
+            <a href="../../about.html">about</a>
+            <a href="../../blog/index.html">blog</a>
+            <a href="https://github.com/ChrisBoettner" target="_blank" aria-label="GitHub Profile">
+                <svg height="24" width="24" viewBox="0 0 16 16" fill="black">
+                    <path
+                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                </svg>
+            </a>
+            <a href="mailto:christopher.boettner95@gmail.com" aria-label="Email Me">
+                <svg height="24" width="24" viewBox="0 0 24 24" fill="black">
+                    <path
+                        d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6zm-2 0l-8 5-8-5h16zm0 12H4V8l8 5 8-5v10z" />
+                </svg>
+            </a>
+        </div>
+    </nav>
+
+    <main>
+        <article>
+            <div class="blog-post-header">
+                <h1>From Deterministic Weather Forecasts To Ensembles</h1>
+                <div class="meta">
+                    <span>June 02, 2026</span>
+                    <div class="tags">
+                        <span class="tag">Ensembles</span>, <span class="tag">Probabilistic Modelling</span>, <span class="tag">Weather
+                            Forecasting</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="blog-post-content">
+
+                <p>This is the second post in a series on ECMWF's ML-based weather forecasting models. In the <a href="2026-05-20-aifs_blog_post.html">last post</a>,
+                    we looked at the first, deterministic version of the data-driven, transformer-based weather forecasting system.
+                    In this post, we're looking at the <a href="https://arxiv.org/abs/2412.15832">follow-up paper</a> (Lang et al.
+                    2024) that was released a few months after the first one.
+                </p>
+
+                <p>In the first post, we already mentioned the <em>double-penalty problem</em>, which leads
+                    the model to predict increasingly blurred features as the forecast horizon (and uncertainty) increases.
+                    This phenomenon occurred in all deterministic forecasting models up to this point, including GraphCast,
+                    Pangu-Weather, and FourCastNet.
+                </p>
+
+                <p>While there are likely a number of ways to resolve this issue, the preferred approach for modelling teams
+                    (including the ECMWF team) has been to extend these deterministic models into probabilistic forecasts, which 
+                    yield entire ensembles of predictions rather than just one value.
+                </p>
+
+                <p>The reason this approach is so attractive is because it solves not only the blurring problem, but more importantly 
+                    also yields uncertainty estimates on the forecast. This has been integral to the usefulness of physics-based forecasts
+                    for a long time. And as a proud Bayesian and advocate for probabilistic machine learning, that is of course immensely satisfying
+                    to me.
+                </p>
+
+                <p>The ECMWF modelling team decided to implement the probabilistic component by keeping most of the architecture of
+                    the deterministic AIFS model unchanged, and instead introducing a new training objective: the
+                    <em>Continuous Ranked Probability Score</em> (CRPS). We'll go through the implementation details in this post, and throughout
+                    I will assume that you have read the first post beforehand.
+                </p>
+
+
+                <h2 id="Probabilistic-Forecasts">Probabilistic Forecasts</h2>
+
+                <p>Before getting into the technical details of AIFS-CRPS, it's worth clarifying what an ensemble actually is.
+                    In weather forecasting, an ensemble is a set of plausible future trajectories of the atmosphere, each
+                    sharp individually, which together represent the probability distribution for the future atmospheric state.
+                    ECMWF has been running physics-based ensembles for a long time. Their operational system, IFS-ENS,
+                    runs 50 perturbed copies of the same model, each starting from a slightly different initial condition 
+                    and/or subject to stochastic perturbations in their parametrisations. The output is 50 predictions, 
+                    which can be interpreted as a distribution over possible atmospheric states.
+                </p>
+
+                <p>For ML-based models, there are a number of ways you could implement this probabilistic component.
+                    You could simply run the deterministic model multiple times with perturbed initial conditions, but this
+                    doesn't fix the blurring issue, and you're unlikely to get a well-calibrated ensemble that does not
+                    underestimate uncertainties. A more promising, and I'd say the most hyped, approach is using diffusion models.
+                    The flagship example is Google DeepMind's <a href="https://arxiv.org/abs/2312.15796">GenCast</a> (Price et al. 2023),
+                    and ECMWF experimented with this approach as well (<a
+                    href="https://www.ecmwf.int/en/about/media-centre/aifs-blog/2024/enter-ensembles">Enter the Ensembles</a>). Diffusion models have
+                    been quite popular in the image and video generation fields, and their rapid progress makes them a natural choice for 
+                    the architecture. They are also by nature probabilistic: you start
+                    with random noise and iteratively shape it using the denoising network, meaning different input noise maps
+                    produce different predictions. In image generation, diffusion models also stand out for producing sharper, less blurry images
+                    compared to previous methods. So they were an obvious candidate for dealing with the issues of deterministic forecasting models,
+                    and both GenCast and the ECMWF experiments produced promising results.
+                </p>
+
+                <p> In the end, the AIFS-CRPS model in the paper takes a different approach though. It uses an architecture setup that is almost identical to
+                    the deterministic AIFS from the first paper, but is trained with a distribution-aware objective instead of the MSE loss. Thanks to this, 
+                    each ensemble member is produced in a single forward pass through the network rather than a complicated denoising procedure. This has a <a
+                    href="https://www.ecmwf.int/en/newsletter/185/earth-system-science/aifs-ens-becomes-operational">bunch of
+                    advantages</a>: it's faster and easier to run, architectural improvements of the deterministic model translate directly to the ensemble
+                    model, and ultimately, these models even tend to produce better predictions.
+                </p>
+
+                <h2 id="What-Else-Changed">Updates To The AIFS Model</h2>
+
+                <p>Before we get to the scoring-rule and probabilistic stuff, it's worth mentioning a few non-probabilistic upgrades
+                    that ECMWF quietly slipped into the pipeline between the original AIFS and AIFS-CRPS papers. The model
+                    backbone is still the same encoder-processor-decoder we covered in <a
+                        href="2026-05-20-aifs_blog_post.html">post 1</a>, with the same graph-transformer mappers and
+                    the same 16-layer sliding-window-attention processor. But a few ingredients of the training
+                    pipeline are genuinely different, and would still make sense if you stripped
+                    the ensemble training away. So they're worth flagging on
+                    their own.</p>
+
+                <h3 id="Tendency-Switch">From Full States To Tendencies</h3>
+
+                <p>The original AIFS predicted the <em>full atmospheric state</em> at $t+6$h directly, not a
+                    tendency. The AIFS authors flagged it as a known weak spot in 
+                    <a href="https://arxiv.org/abs/2406.01465">the first paper</a>:</p>
+
+                <blockquote>AIFS currently uses "full" normalised states in its training loss. This stands in
+                    contrast to predicting normalised forecast tendencies as done by, e.g., Keisler [2022] or Lam et
+                    al. [2023]. The potential downside here is that the output of the last linear layer of AIFS that
+                    maps latent space variables to physical space may not be adequately normalised. <em>This will
+                        likely be revised in a future AIFS upgrade.</em></blockquote>
+
+                        
+
+                <p>That revision is implemented in the AIFS-CRPS architecture. I actually found the exact moment of this change in the
+                    codebase: <a href="https://github.com/ecmwf/anemoi-core/issues/39">issue #39 on
+                        <code>ecmwf/anemoi-core</code></a>. The AIFS-CRPS paper itself sweeps this change under the rug a little and only
+                    mentions it in passing in Section 2.1, which confused me quite a bit when reading the paper for the first time.
+                    In practice, this means we change the prediction equation from
+                    $$\hat{\mathbf{x}}_{t+6} = f_\theta\big(\mathbf{x}_{t-6},\, \mathbf{x}_t\big)$$
+                    in the first paper to
+                    $$\hat{\mathbf{x}}_{t+6} = \mathbf{x}_{t} + f_\theta\big(\mathbf{x}_{t-6},\, \mathbf{x}_t\big).$$
+                </p>
+
+                <h3 id="Low-Pass">Low-Pass Filter On The Input State</h3>
+
+                <p>The second change is closely related to the first. Since the AIFS-CRPS model is able to predict sharp features over
+                    the course of the rollout, rather than producing increasingly smoothed successive steps, small errors in the tendency
+                    predictions tend to pile up over the course of the rollout. This leads to implausible high-frequency features in the forecast.</p>
+
+                <p>The ECMWF team mitigates these errors by effectively applying a low-pass filter to the input state.
+                    In this way, the network has to redraw all the sharp features from scratch for every prediction, and doesn't have to
+                    fix any of its own leftover noise from the previous step.
+                </p>
+
+                <p>They implement this low-pass filter by using down- and upsampling matrices $D$ and $U$. These are not neural networks, but
+                    sparse interpolation matrices generated by ECMWF's <em>MIR</em> (Meteorological Interpolation and
+                    Regridding) software, without any learnable parameters. The state update equation thus becomes
+                    $$\hat{\mathbf{x}}_{t+6} = U(D(\mathbf{x}_{t})) + f_\theta\big(\mathbf{x}_{t-6},\, \mathbf{x}_t\big).$$
+                </p>
+
+                <div class="demo reveal">
+                    <div class="demo-head">
+                        <div>
+                            <div class="kind">interactive · state update</div>
+                            <div class="title">The state update pipeline</div>
+                        </div>
+                        <div class="lp-toggle" id="lpToggle">
+                            <button type="button" class="lp-btn active" data-view="op">State Update</button>
+                            <button type="button" class="lp-btn" data-view="effect">Effect</button>
+                        </div>
+                    </div>
+                    <div class="lp-figure">
+                        <svg id="lpSvg" viewBox="0 0 560 228" preserveAspectRatio="xMidYMid meet"></svg>
+                    </div>
+                    <div class="demo-foot">$D$ and $U$ are fixed sparse interpolation matrices from ECMWF's MIR
+                        package with no learnable parameters. The network computes the tendency from the full-resolution input.</div>
+                </div>
+
+
+                <h3 id="Training-Curriculum">Changes To The Training Curriculum</h3>
+
+                <p>Improvements have also been made to the training procedure. The first paper had a three-phase training
+                    schedule: pretrain on single 6 h steps, then a rollout fine-tuning phase that smoothly grew the
+                    forecast window from 6 h to 72 h, then an operational-analysis fine-tuning phase.
+                </p>
+                <p>
+                    AIFS-CRPS splits this into <em>four</em> phases. Stage 1 is the same single-step pretrain. Stage 2 is a
+                    dedicated 2-step rollout phase with the learning rate reset, which the original
+                    didn't have. Stage 3 grows the rollout window from 3 to 12 steps, but the learning rate is
+                    held constant through this phase. Stage 4 is the operational-analysis fine-tune. Furthermore, the amount of
+                    data for the final stage has been increased from two years (2019–2020) to eight years (2016–2023).
+                </p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Phase</th>
+                            <th>Data</th>
+                            <th>Forecast horizon</th>
+                            <th>Iterations</th>
+                            <th>Learning rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1. Pretrain</td>
+                            <td>ERA5 1979–2017</td>
+                            <td>single 6 h step</td>
+                            <td>300,000</td>
+                            <td>$1\times 10^{-3} \to 0$, cosine</td>
+                        </tr>
+                        <tr>
+                            <td>2. Rollout-2</td>
+                            <td>ERA5 1979–2017</td>
+                            <td>2 steps (12 h)</td>
+                            <td>60,000</td>
+                            <td>$1\times 10^{-5} \to 0$, cosine</td>
+                        </tr>
+                        <tr>
+                            <td>3. Long rollout</td>
+                            <td>ERA5 1979–2017</td>
+                            <td>3 → 12 steps (18 → 72 h)</td>
+                            <td>~45,000</td>
+                            <td>$1\times 10^{-6}$, constant</td>
+                        </tr>
+                        <tr>
+                            <td>4. Operational fine-tune</td>
+                            <td>IFS analyses 2016–2023</td>
+                            <td>up to 12 steps</td>
+                            <td>not reported</td>
+                            <td>$5\times 10^{-7}$, constant</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 id="Pressure-Floor">Floor On The Upper-Atmosphere Loss Weight</h3>
+
+                <p>The first paper mentioned that the accuracy of the prediction is reduced in the upper atmosphere,
+                    since the loss has a pressure-dependent weighting. AIFS-CRPS introduces an optional minimum floor
+                    to this weight of 0.2, in order to not fully neglect the upper-air variables.</p>
+
+                <h2 id="CRPS">The Continuous Ranked Probability Score</h2>
+
+                <p>Now we are finally getting to the probabilistic part! As mentioned above, architecturally, the AIFS
+                    and AIFS-CRPS models are nearly identical. The big difference is the loss function. For the deterministic
+                    AIFS variant, the typical Mean Squared Error (MSE) loss was used. But the MSE only optimises for a point
+                    prediction (getting the prediction as close to this reference value as possible).
+                </p>
+
+                <p>To move to probabilistic modelling, we usually do not look at the distance between two <em>points</em>
+                    but at the distance between two <em>distributions</em>. Typical keywords for a Bayesian modeller here
+                    are KL divergence, ELBO, variational inference, and all those fun topics. ML practitioners may have
+                    heard about the Wasserstein distance, which is used in GANs. Another distance metric, and the one that is used
+                    here, is the <em>energy distance</em>. Between two distributions $P$ and $Q$, it is defined as 
+                    $$D^2_\mathrm{Energy}(P, Q) = 2\,\mathbb{E}\|\mathbf{X} - \mathbf{Y}\| \;-\; \mathbb{E}\|\mathbf{X} - \mathbf{X}'\| \;-\; \mathbb{E}\|\mathbf{Y} - \mathbf{Y}'\|,$$
+                    where $\mathbf{X}$ and $\mathbf{X}'$ are independent random variables drawn from $P$, and $\mathbf{Y}$ and $\mathbf{Y}'$ are independent random
+                    variables drawn from $Q$. So if $P$ is the distribution of atmospheric states predicted by our probabilistic
+                    model, and $Q$ is the distribution of the true atmospheric state, then all we have to do is minimise this loss.
+                </p>
+
+                <p> But this comes with a slight problem: we don't know the real distribution of atmospheric states. 
+                    All we have is a single best-estimate value from the ERA5 dataset. So we have to use a small trick. 
+                    We simply say the distribution of the true state is a point mass at $\mathbf{y}$ — all of the probability sits
+                    on the random variable $\mathbf{Y}$ being equal to $\mathbf{y}$, and nothing on anything else.
+                    In physics and math, we call this the <em>Dirac delta distribution</em>
+                    $\delta(\mathbf{y})$.
+                </p>
+
+                <p>If we assume $Q = \delta(\mathbf{y})$, then every sample of $\mathbf{Y}$ is just $\mathbf{y}$, so
+                    $$\mathbb{E}\|\mathbf{Y} - \mathbf{Y}'\| = 0$$
+                     and
+                    $$\mathbb{E}\|\mathbf{X} - \mathbf{Y}\| = \mathbb{E}\|\mathbf{X} - \mathbf{y}\|.$$
+                    The energy distance therefore simplifies to
+                    $$D^2_\mathrm{Energy}\big(P, \delta(\mathbf{y})\big) = 2\,\mathbb{E}\|\mathbf{X} - \mathbf{y}\| \;-\; \mathbb{E}\|\mathbf{X} - \mathbf{X}'\|.$$
+                    If we divide this expression by 2, we get the so-called <em>Continuous Ranked Probability Score</em> (CRPS),
+                    $$\mathrm{CRPS}(P, \mathbf{y}) = \mathbb{E}\|\mathbf{X} - \mathbf{y}\| \;-\; \tfrac{1}{2}\,\mathbb{E}\|\mathbf{X} - \mathbf{X}'\|.$$
+                </p>
+
+                <p>The CRPS is our new loss function, and a so-called <em>proper scoring rule</em>. A scoring rule $S(P, \mathbf{y})$
+                    takes a predicted distribution $P$ and an observation $\mathbf{y}$, and returns a number; lower is (usually) better.
+                    It's proper if, on average, the lowest score is achieved by predicting the true distribution. That is, if
+                    the data really comes from some distribution $Q$, then
+                </p>
+                <p>$$ \mathbb{E}_{\mathbf{y} \sim Q}\,[S(Q, \mathbf{y})] \;\le\; \mathbb{E}_{\mathbf{y} \sim Q}\,[S(P, \mathbf{y})] \quad \text{for any } P. $$</p>
+
+                <p>Now, if our model predicts $M$ ensemble members $\{x_j\}_{j=1}^M$ for a single processor grid point $x$, we can estimate the CRPS as</p>
+
+                <p>$$ \mathrm{CRPS}\big(\{x_j\}_{j=1}^M, y\big) \;=\; \underbrace{\frac{1}{M}\sum_{j=1}^M |x_j - y|}_{\text{average distance to the observation}} \;-\; \underbrace{\frac{1}{2 M^2}\sum_{j=1}^M\sum_{k=1}^M |x_j - x_k|}_{\text{inter-ensemble spread}}. $$</p>
+
+                <p>This is a nicely interpretable expression. The first term is the average absolute error of the ensemble
+                    members against the observation — basically the Mean Absolute Error (MAE). The model tries to minimise
+                    this term. The second term, on the other hand, is half the average pairwise distance
+                    between ensemble members. This term contributes <em>negatively</em> to the loss, meaning the
+                    model tries to keep this average distance as large as possible. Both terms play against one
+                    another, with the optimum sitting where the two terms balance out, which is exactly when the
+                    ensemble spread matches the true forecast uncertainty.
+                </p>
+                
+                <p>The CRPS expression replaces the MSE in the loss function for a single processor grid point $x$, calculated over all ensemble members
+                   $\{x_j\}_{j=1}^M$. Just like in the first paper, the total loss is an area-weighted mean over all grid points. The individual variables
+                   are scaled in the same way as in the AIFS paper, so that they contribute roughly equally to the loss. Additionally, the 
+                   pressure-dependent weighting is used to decrease the effect of upper-air variables (with the optional weight floor discussed 
+                   above).
+
+                </p>
+
+                <p>It is not surprising that the CRPS is used for ML-based weather prediction. The score itself originates in meteorology,
+                    where it is commonly used to assess the quality of (classical, physics-based) ensemble forecasts. So using
+                    it as a loss for a probabilistic forecasting model is quite natural.</p>
+
+                <h3 id="Almost-Fair">The Almost-Fair CRPS</h3>
+
+                <p>There is a small subtlety in the second term of the estimator above. If $j = k$, the pairwise sum
+                    always evaluates to zero. This means we are effectively losing one degree of freedom in the estimator,
+                    which makes the above expression biased. <a href="https://doi.org/10.1002/qj.2270">Ferro (2013)</a> showed that
+                    this bias is corrected by switching the denominator from $\frac{1}{2M^2}$ to $\frac{1}{2M(M-1)}$, leading to the <em>fair CRPS</em>:</p>
+
+                <p>$$ \mathrm{fCRPS}\big(\{x_j\}, y\big) \;=\; \frac{1}{M}\sum_{j=1}^M |x_j - y| \;-\; \frac{1}{2 M(M-1)}\sum_{j=1}^M\sum_{k=1}^M |x_j - x_k|. $$</p>
+
+                <p>The fCRPS is unbiased in expectation at any ensemble size $M$. However, in the case when all $x_j = y$
+                    except for one, $x_l$, the fair CRPS simplifies to
+                    $$ \mathrm{fCRPS}\big(\{x_j\}, y\big) \;=\; \frac{1}{M} |x_l - y| \;-\; \frac{2 (M-1)}{2 M(M-1)} |x_l - y| \;=\; 0, $$
+                    and therefore becomes independent of the model predictions. Neural networks love to cheat if they can, so the authors
+                    anticipate this would become a problem at some point. The paper's solution is to introduce a composite score, which
+                    they call the <em>almost-fair</em> CRPS, given by
+                    $$ \mathrm{afCRPS}_\alpha \;:=\; \alpha\,\mathrm{fCRPS} + (1-\alpha)\,\mathrm{CRPS}, $$
+                    with $\alpha = 0.95$. Rearranged for numerical stability, it reads
+                    $$ \mathrm{afCRPS}_\alpha \;=\; \frac{1}{2 M(M-1)} \sum_{j=1}^M \sum_{\substack{k=1 \\ k \ne j}}^M \Big(|x_j - y| + |x_k - y| - (1-\epsilon)|x_j - x_k|\Big), $$
+                    with $\epsilon = (1-\alpha)/M$.
+                </p>
+
+                <h2 id="Stochastic-Model">Making The Model Stochastic</h2>
+
+                <p>Besides the changes mentioned above, the model architecture is essentially the same encoder-processor-decoder 
+                  setup from the first paper. The only architectural addition to make the model stochastic is adding a noise input to the 
+                  processor blocks, so that for a fixed input state the model can produce a distribution of forecasts conditioned on input 
+                  noise.
+                </p>
+
+                <p>For each ensemble member, and at each forecast step, a random noise vector is drawn from a standard Gaussian
+                    $\boldsymbol{\xi} \sim \mathcal{N}(0, \mathbf{I})$. It is passed through a small two-layer MLP followed by a 
+                    layer normalisation (LN) to produce a noise embedding,
+                    $$\nu = \mathrm{LN}\big(\mathrm{MLP}(\boldsymbol{\xi})\big),$$
+                    which is then used to condition the forward pass using <em>Conditional Layer Normalisation</em> (CLN).
+                </p>
+
+
+                <p>In a standard LN, a grid point $x$ gets normalised $x^\prime = \frac{x - \mu}{\sigma}$, where $\mu$ and $\sigma$ are calculated
+                   across the hidden dimension, and passed through a learned affine transformation, 
+                   $$\mathrm{LN}(x) = \gamma \odot x^\prime + \beta,$$ 
+                   where $\gamma, \beta \in \mathbb{R}^{d}$ are per-layer learnable parameters, with $d$ being the size of the hidden dimension.
+                   In standard LN, these parameters are fixed after training and applied to inputs indiscriminately.
+                </p>
+
+                <p>For conditional layer normalisation, we replace the two LN layers in the transformer by CLN
+                    layers. We use the noise embedding to calculate the noise-dependent transformation parameters $\gamma$ and $\beta$ using
+                    $$\gamma(\boldsymbol{\xi}) = W_\gamma\,\nu(\boldsymbol{\xi}) + b_\gamma, \qquad \beta(\boldsymbol{\xi}) = W_\beta\,\nu(\boldsymbol{\xi}) + b_\beta,$$
+                    where $W_\gamma, b_\gamma, W_\beta, b_\beta$ are per-layer learnable parameters. In this way, the same input state can induce differing
+                    post-norm activations and ultimately output states, based on the input noise.
+                 </p>
+
+                <div class="demo reveal">
+                    <div class="demo-head">
+                        <div>
+                            <div class="kind">interactive · architecture</div>
+                            <div class="title">Probabilistic processor block</div>
+                        </div>
+                    </div>
+                    <div class="clnorm-row">
+                        <div class="clnorm-diagram">
+                            <svg id="clnSvg" viewBox="0 0 472 500" preserveAspectRatio="xMidYMid meet"></svg>
+                        </div>
+                        <div class="clnorm-info" id="clnInfo"></div>
+                    </div>
+                    <div class="demo-foot">Click on any block to see what it does. The only architectural change
+                        relative to <a href="2026-05-20-aifs_blog_post.html#Processor">the processor block from post 1</a>
+                        is that the two pre-norm LayerNorms become <em>conditional</em>, with their scale and shift
+                        parameters driven by the per-member noise sample.</div>
+                </div>
+
+                <h2 id="Training">Training</h2>
+
+                <p>The model training follows the four-stage curriculum laid out above.</p>
+
+                <p>For each forecast step, we start with the <em>same</em> ERA5 initial state $\mathbf{x}_t$.
+                   For every ensemble member, a unique noise sample $\boldsymbol{\xi}$ is drawn, and a forecast produced.
+                   The $M$ forecasts are then scored <em>jointly</em> under the afCRPS. For rollout training, each state
+                   is initialised with a fresh noise sample.        
+                </p>
+
+                <p>Similarly to the deterministic version, the training is distributed via data and tensor sharding. In addition,
+                   <em>ensemble parallelism</em> is used. Each ensemble member runs its own copy of the model on its own set of
+                   GPUs. After the forward pass, a differentiable all-gather collects the per-member forecasts onto every device,
+                   so the loss and gradients can be calculated.
+                </p>
+                    
+                <p>The paper trains two different versions of the model:</p>
+
+                <ul>
+                    <li><strong>AIFS-CRPS O96</strong> (~1°): O96 input grid, O48 processor grid, ensemble size
+                        $M = 4$, with the linear pressure weighting and its 0.2 floor. Trained for about 4 days on
+                        64 H100 GPUs.</li>
+                    <li><strong>AIFS-CRPS N320</strong> (~0.25°, ERA5's native resolution): N320 input grid, O96
+                        processor grid, ensemble size $M = 2$, no minimum-pressure floor. Trained for about 7 days on 
+                        128 H100 GPUs.</li>
+                </ul>
+
+                <div class="demo reveal">
+                    <div class="demo-head">
+                        <div>
+                            <div class="kind">interactive · training</div>
+                            <div class="title">The training pipeline</div>
+                        </div>
+                    </div>
+                    <div class="ens-wrap">
+                        <div class="ens-flow" id="ensFlow"></div>
+                        <div class="ens-caption" id="ensCap">
+                            <span class="ttl">click any block to inspect</span>
+                            All $M$ ensemble members start from the same initial state $\mathbf{x}_t$, each with their own
+                            noise sample $\boldsymbol{\xi}$. The members are propagated forward by $M$ separate model instances
+                            with shared $\theta$, producing $M$ different forecasts. They are gathered and scored jointly
+                            with the afCRPS loss against a single deterministic ERA5 target $\mathbf{y}$.
+                        </div>
+                    </div>
+                    <div class="demo-foot">Adapted from Figure 1 of Lang et al. (2024).</div>
+                </div>
+
+                <h2 id="Inference">Inference And Operational Use</h2>
+                
+                <p>At inference time, the individual ensemble members are basically fully independent, so that one 
+                   can draw as many as desired. ECMWF has made the ensemble model operational
+                   <a href="https://www.ecmwf.int/en/newsletter/185/earth-system-science/aifs-ens-becomes-operational">
+                    last year</a> as <em>AIFS ENS</em> (separate from the <em>AIFS Single</em> deterministic model).
+                    The operational model includes 50 ensemble members plus a control run.
+                </p>
+                
+                <p>Importantly, one change is made from the training procedure: In training, every member starts
+                    from the same ERA5 state, so all of the ensemble spread is generated internally, by the noise
+                    channel. In operation, the initial states for AIFS ENS are the same initial states that are 
+                    used for the physics-based IFS ensemble. These initial conditions are themselves perturbed using
+                    singular-vector perturbations. The operational forecast therefore carries two sources of 
+                    uncertainty: initial-condition uncertainty from the perturbed states, and forecast-model 
+                    uncertainty from the noise. Since these perturbations are specifically tuned
+                    to improve the forecast skill of the IFS model, they appear to degrade the performance of the
+                    AIFS ENS system slightly. ECMWF flags this as an area for future improvements.
+                </p>
+
+                <p> While the authors argue there is still lots of room for improvement and experimentation, it is pretty
+                    amazing how fast they were able to build an ML-based operational system that can compete with established
+                    physics-based methods, all while being much cheaper and faster to run. In the paper, they especially flag
+                    the good performance of the model over longer time horizons as a promising avenue for further research.
+
+                </p>
+
+                <p>There have already been some follow-up papers on this work: <a href="https://arxiv.org/abs/2509.18994">AIFS 1.1</a>, which introduces
+                    additional variables; a <a href="https://arxiv.org/abs/2506.10868">preprint</a> that modifies the CRPS loss to
+                    explicitly include multi-scale spatial features; and the updated
+                     <a href="https://www.ecmwf.int/en/about/media-centre/news/2026/ifs-cycle-50r1-aifsv2-live">AIFS v2</a>. So there is still a bunch
+                     of things we can dig into in the future.
+                </p>
+
+                <details class="refs">
+                    <summary>References cited</summary>
+                    <ul id="cites"></ul>
+                </details>
+
+            </div>
+        </article>
+    </main>
+
+    <footer>
+        <div class="social-links">
+            <a href="https://github.com/ChrisBoettner" target="_blank" aria-label="GitHub Profile">
+                <svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor">
+                    <path
+                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                </svg>
+            </a>
+            <a href="mailto:christopher.boettner95@gmail.com" aria-label="Email Me">
+                <svg height="24" width="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6zm-2 0l-8 5-8-5h16zm0 12H4V8l8 5 8-5v10z" />
+                </svg>
+            </a>
+            <a href="https://www.linkedin.com/in/christopher-boettner-87aa21243/" target="_blank"
+                aria-label="LinkedIn Profile">
+                <svg height="24" width="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                </svg>
+            </a>
+        </div>
+        <p>&copy; 2026 Chris Boettner. All rights reserved.</p>
+    </footer>
+
+    <script src="../../scripts/main.js"></script>
+
+    <script>
+        (() => {
+            const COLOR = {
+                warm: '#f59e0b',
+                cool: '#0ea5e9',
+                ink: '#0f172a',
+                soft: '#475569',
+                muted: '#94a3b8',
+                rule: 'rgba(15,23,42,0.10)',
+            };
+            const prefersReduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            /* ── reveal on scroll ── */
+            const revealNodes = [];
+            document.querySelectorAll('.reveal').forEach(el => revealNodes.push(el));
+            if (!prefersReduce && 'IntersectionObserver' in window) {
+                const obs = new IntersectionObserver(es => {
+                    es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); } });
+                }, { rootMargin: '0px 0px -50px 0px', threshold: 0.05 });
+                revealNodes.forEach(el => obs.observe(el));
+            } else {
+                revealNodes.forEach(el => el.classList.add('in'));
+            }
+            setTimeout(() => revealNodes.forEach(el => el.classList.add('in')), 2400);
+
+            /* ── CRPS visualiser ──
+               Forecast ensemble: M samples from N(μ, σ²), placed at fixed quantiles for determinism.
+               Truth distribution: N(0, σ_true²) with σ_true = 1.5.
+               Expected CRPS computed by averaging the sample-CRPS over many observation quantiles
+               drawn from the truth.
+            */
+            const crpsSvg = document.getElementById('crpsSvg');
+            const muSlider = document.getElementById('muSlider');
+            const sgSlider = document.getElementById('sgSlider');
+            const muLab = document.getElementById('muLab');
+            const sgLab = document.getElementById('sgLab');
+            const crpsOut = document.getElementById('crpsOut');
+            const maeOut = document.getElementById('maeOut');
+            const sprOut = document.getElementById('sprOut');
+            const mseOut = document.getElementById('mseOut');
+
+            if (crpsSvg && muSlider && sgSlider) {
+
+            const M = 11;                          // forecast ensemble size
+            const SIG_TRUE = 1.5;                  // truth distribution width
+            const N_OBS = 41;                      // observation samples for expectation
+            const XMIN = -5, XMAX = 5;
+            const W = 640, H = 260;
+            const PAD_L = 36, PAD_R = 24, AXY = 200;
+            const PLOT_W = W - PAD_L - PAD_R;
+
+            // inverse standard normal CDF (Beasley-Springer-Moro approximation)
+            function probit(p) {
+                const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+                const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+                const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+                const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+                const pl = 0.02425, ph = 1 - pl;
+                let q, r;
+                if (p < pl) {
+                    q = Math.sqrt(-2 * Math.log(p));
+                    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+                        ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+                } else if (p <= ph) {
+                    q = p - 0.5; r = q * q;
+                    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+                        (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+                } else {
+                    q = Math.sqrt(-2 * Math.log(1 - p));
+                    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+                        ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+                }
+            }
+
+            // fixed quantiles for the forecast ensemble (returns M values in z-space)
+            const Z_FORECAST = [];
+            for (let j = 0; j < M; j++) Z_FORECAST.push(probit((j + 0.5) / M));
+            // fixed quantiles for the observation expectation
+            const Z_OBS = [];
+            for (let i = 0; i < N_OBS; i++) Z_OBS.push(probit((i + 0.5) / N_OBS));
+
+            // map x in [XMIN, XMAX] to pixel x
+            function xPix(x) { return PAD_L + (x - XMIN) / (XMAX - XMIN) * PLOT_W; }
+            // gaussian pdf
+            function pdf(x, mu, sg) { return Math.exp(-0.5 * (x - mu) * (x - mu) / (sg * sg)) / (sg * Math.sqrt(2 * Math.PI)); }
+
+            function computeScores(mu, sg) {
+                // forecast samples
+                const xs = Z_FORECAST.map(z => mu + sg * z);
+                // observations drawn from N(0, SIG_TRUE^2)
+                const ys = Z_OBS.map(z => SIG_TRUE * z);
+
+                // expected MAE term: average over observations of (1/M) sum_j |x_j - y|
+                let mae = 0, mse = 0;
+                for (const y of ys) {
+                    let acc = 0, acc2 = 0;
+                    for (const x of xs) { acc += Math.abs(x - y); acc2 += (x - y) * (x - y); }
+                    mae += acc / M;
+                    mse += acc2 / M;
+                }
+                mae /= ys.length;
+                mse /= ys.length;
+
+                // spread term (1/(2M^2)) sum_jk |x_j - x_k|, observation-independent
+                let spr = 0;
+                for (let j = 0; j < M; j++) for (let k = 0; k < M; k++) spr += Math.abs(xs[j] - xs[k]);
+                spr /= (2 * M * M);
+
+                return { xs, ys, mae, spread: spr, crps: mae - spr, mse };
+            }
+
+            function renderCRPS(mu, sg) {
+                const { xs, mae, spread, crps, mse } = computeScores(mu, sg);
+
+                // background
+                let svg = `<rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff"/>`;
+
+                // truth pdf curve
+                const N_CURVE = 200;
+                let path = '';
+                let pdfMax = 0;
+                for (let i = 0; i <= N_CURVE; i++) {
+                    const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
+                    const v = pdf(x, 0, SIG_TRUE);
+                    if (v > pdfMax) pdfMax = v;
+                }
+                const PDF_H = 80;
+                for (let i = 0; i <= N_CURVE; i++) {
+                    const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
+                    const v = pdf(x, 0, SIG_TRUE);
+                    const px = xPix(x), py = AXY - (v / pdfMax) * PDF_H;
+                    path += (i === 0 ? `M ${px.toFixed(1)} ${py.toFixed(1)}` : ` L ${px.toFixed(1)} ${py.toFixed(1)}`);
+                }
+                svg += `<path d="${path} L ${xPix(XMAX)} ${AXY} L ${xPix(XMIN)} ${AXY} Z" fill="${COLOR.cool}" opacity="0.08"/>`;
+                svg += `<path d="${path}" stroke="${COLOR.cool}" stroke-width="1.4" fill="none" opacity="0.6"/>`;
+                svg += `<text x="${xPix(SIG_TRUE + 0.4).toFixed(1)}" y="${(AXY - PDF_H * 0.55).toFixed(1)}" font-family="Fira Code" font-size="11" fill="${COLOR.cool}" opacity="0.85">truth · N(0, 1.5²)</text>`;
+
+                // forecast pdf curve
+                let path2 = '';
+                let pdf2Max = 0;
+                for (let i = 0; i <= N_CURVE; i++) {
+                    const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
+                    const v = pdf(x, mu, sg);
+                    if (v > pdf2Max) pdf2Max = v;
+                }
+                const PDF2_H = 80;
+                for (let i = 0; i <= N_CURVE; i++) {
+                    const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
+                    const v = pdf(x, mu, sg);
+                    const px = xPix(x), py = AXY - (v / pdf2Max) * PDF2_H;
+                    path2 += (i === 0 ? `M ${px.toFixed(1)} ${py.toFixed(1)}` : ` L ${px.toFixed(1)} ${py.toFixed(1)}`);
+                }
+                svg += `<path d="${path2}" stroke="${COLOR.warm}" stroke-width="1.8" fill="none" opacity="0.55" stroke-dasharray="4 3"/>`;
+
+                // x axis
+                svg += `<line x1="${PAD_L}" y1="${AXY}" x2="${W - PAD_R}" y2="${AXY}" stroke="rgba(15,23,42,0.45)"/>`;
+                for (let t = XMIN; t <= XMAX; t += 1) {
+                    const tx = xPix(t);
+                    svg += `<line x1="${tx}" y1="${AXY}" x2="${tx}" y2="${AXY + 4}" stroke="rgba(15,23,42,0.45)"/>`;
+                    svg += `<text x="${tx}" y="${AXY + 16}" text-anchor="middle" font-family="Fira Code" font-size="10" fill="${COLOR.soft}">${t}</text>`;
+                }
+                svg += `<text x="${W - PAD_R}" y="${AXY + 32}" text-anchor="end" font-family="Fira Code" font-size="10" fill="${COLOR.muted}">forecast / observation value</text>`;
+
+                // ensemble member dots
+                xs.forEach((x, j) => {
+                    const cx = xPix(x);
+                    svg += `<line x1="${cx.toFixed(1)}" y1="${AXY - 12}" x2="${cx.toFixed(1)}" y2="${AXY + 12}" stroke="${COLOR.warm}" stroke-width="2" opacity="0.85"/>`;
+                });
+                svg += `<text x="${xPix(mu).toFixed(1)}" y="${(AXY + 50).toFixed(1)}" text-anchor="middle" font-family="Fira Code" font-size="11" fill="${COLOR.warm}" font-weight="600">forecast ensemble · M = ${M}</text>`;
+
+                // mean indicator
+                const cxm = xPix(mu);
+                svg += `<line x1="${cxm.toFixed(1)}" y1="${(AXY - 28).toFixed(1)}" x2="${cxm.toFixed(1)}" y2="${(AXY - 8).toFixed(1)}" stroke="${COLOR.warm}" stroke-width="1" opacity="0.5" stroke-dasharray="2 2"/>`;
+                svg += `<text x="${cxm.toFixed(1)}" y="${(AXY - 32).toFixed(1)}" text-anchor="middle" font-family="Fira Code" font-size="10" fill="${COLOR.warm}" opacity="0.85">μ</text>`;
+
+                // truth zero indicator
+                const cx0 = xPix(0);
+                svg += `<line x1="${cx0.toFixed(1)}" y1="${(AXY - PDF_H - 6).toFixed(1)}" x2="${cx0.toFixed(1)}" y2="${(AXY - 8).toFixed(1)}" stroke="${COLOR.cool}" stroke-width="1" opacity="0.5" stroke-dasharray="2 2"/>`;
+
+                crpsSvg.innerHTML = svg;
+
+                // readouts
+                muLab.textContent = mu.toFixed(2);
+                sgLab.textContent = sg.toFixed(2);
+                crpsOut.textContent = `CRPS = ${crps.toFixed(3)}`;
+                maeOut.textContent = mae.toFixed(3);
+                sprOut.textContent = `−${spread.toFixed(3)}`;
+                mseOut.textContent = mse.toFixed(3);
+            }
+
+            function updateFromSliders() {
+                renderCRPS(parseFloat(muSlider.value), parseFloat(sgSlider.value));
+            }
+            muSlider.addEventListener('input', updateFromSliders);
+            sgSlider.addEventListener('input', updateFromSliders);
+            document.querySelectorAll('.crps-preset button').forEach(b => {
+                b.addEventListener('click', () => {
+                    muSlider.value = b.dataset.mu;
+                    sgSlider.value = b.dataset.sg;
+                    updateFromSliders();
+                });
+            });
+            updateFromSliders();
+            }
+
+            /* ── Conditional LayerNorm block schematic ── */
+            const clnSvg = document.getElementById('clnSvg');
+            const clnInfo = document.getElementById('clnInfo');
+
+            // viewBox 440 × 500
+            // Left column (noise pathway): x = 14 .. 178
+            // Right column (token pathway): x = 246 .. 426
+            const CLN_BOXES = [
+                { id: 'xi', x: 22, y: 22, w: 156, h: 50, lines: ['Gaussian Noise'], fs: 12 },
+                { id: 'mlp', x: 22, y: 100, w: 156, h: 46, lines: ['MLP'], fs: 12 },
+                { id: 'ln_noise', x: 22, y: 174, w: 156, h: 46, lines: ['LayerNorm'], fs: 12 },
+                { id: 'pin', x: 250, y: 22, w: 172, h: 36, lines: ['processor tokens'], dashed: true, mono: true, fs: 11 },
+                { id: 'cln1', x: 250, y: 98, w: 172, h: 56, lines: ['Conditional', 'LayerNorm'], conditional: true, fs: 12 },
+                { id: 'attn', x: 250, y: 188, w: 172, h: 42, lines: ['Multi-Head', 'Self-Attention'], fs: 12 },
+                { id: 'cln2', x: 250, y: 282, w: 172, h: 56, lines: ['Conditional', 'LayerNorm'], conditional: true, fs: 12 },
+                { id: 'mlp_proc', x: 250, y: 372, w: 172, h: 42, lines: ['MLP'], fs: 12 },
+                { id: 'pout', x: 250, y: 446, w: 172, h: 36, lines: ['next layer'], dashed: true, mono: true, fs: 11 },
+            ];
+
+            function clnArr(x1, y1, x2, y2, dashed) {
+                const dash = dashed ? ' stroke-dasharray="3 3"' : '';
+                return `<path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="#868d99" fill="none"${dash} marker-end="url(#clnArr)"/>`;
+            }
+            function clnWarmArr(x1, y1, x2, y2) {
+                return `<path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="${COLOR.warm}" stroke-width="1.4" fill="none" marker-end="url(#clnWarm)"/>`;
+            }
+            function clnRes(d) {
+                return `<path d="${d}" stroke="rgba(15,23,42,0.28)" stroke-dasharray="3 3" fill="none"/>`;
+            }
+            function clnPlus(x, y) {
+                return `<circle cx="${x}" cy="${y}" r="7" fill="#fff" stroke="rgba(15,23,42,0.4)"/>` +
+                    `<line x1="${x - 3.5}" y1="${y}" x2="${x + 3.5}" y2="${y}" stroke="rgba(15,23,42,0.5)"/>` +
+                    `<line x1="${x}" y1="${y - 3.5}" x2="${x}" y2="${y + 3.5}" stroke="rgba(15,23,42,0.5)"/>`;
+            }
+
+            // token pathway centred at x = 336
+            const CLN_LINES =
+                clnArr(336, 58, 336, 98) +              // pin → cln1
+                clnArr(336, 154, 336, 188) +            // cln1 → attn
+                clnArr(336, 230, 336, 282) +            // attn → cln2
+                clnArr(336, 338, 336, 372) +            // cln2 → mlp
+                clnArr(336, 414, 336, 446) +            // mlp → pout
+                // noise pathway
+                clnArr(100, 72, 100, 100) +             // xi → mlp
+                clnArr(100, 146, 100, 174) +            // mlp → layernorm
+                // noise-embedding distribution bus (warm, all right angles)
+                `<path d="M 178 197 H 214 M 214 126 V 310" stroke="${COLOR.warm}" stroke-width="1.4" fill="none"/>` +
+                clnWarmArr(214, 126, 250, 126) +        // bus → cln1 (γ, β)
+                clnWarmArr(214, 310, 250, 310) +        // bus → cln2 (γ, β)
+                // residual connections, routed clear of everything on the right
+                clnRes('M 336 76 H 450 V 250 H 343') +  // input → +after attn
+                clnPlus(336, 250) +
+                clnRes('M 336 262 H 466 V 434 H 343') + // h → +after mlp
+                clnPlus(336, 434);
+
+            function clnBox(s, active) {
+                const on = s.id === active;
+                const stroke = on ? COLOR.warm : 'rgba(15,23,42,0.5)';
+                const fill = on ? '#fffbeb' : '#ffffff';
+                const tcol = on ? COLOR.warm : COLOR.ink;
+                const sw = on ? 2 : 1;
+                const dash = s.dashed ? ' stroke-dasharray="4 3"' : '';
+                let r = `<rect class="clnnode" data-id="${s.id}" x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" rx="5" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"${dash} style="cursor:pointer;"/>`;
+                const fs = s.fs || 10, lh = fs + 2, n = s.lines.length;
+                const y0 = s.y + s.h / 2 - (n - 1) * lh / 2 + fs / 2 - 1;
+                s.lines.forEach((ln, i) => {
+                    r += `<text x="${s.x + s.w / 2}" y="${(y0 + i * lh).toFixed(1)}" text-anchor="middle" font-family="${s.mono ? 'Fira Code' : 'Inter, sans-serif'}" font-size="${fs}" font-weight="${s.fw || 600}" fill="${tcol}" style="pointer-events:none;">${ln}</text>`;
+                });
+                // small "ξ" badge on conditional LN boxes
+                if (s.conditional) {
+                    r += `<circle cx="${s.x + 12}" cy="${s.y + 12}" r="8" fill="${COLOR.warm}" opacity="0.92"/>`;
+                    r += `<text x="${s.x + 12}" y="${s.y + 16}" text-anchor="middle" font-family="Fira Code" font-size="10" font-weight="700" fill="#fff" style="pointer-events:none;">ξ</text>`;
+                }
+                return r;
+            }
+
+            const CLN_DESC = {
+                xi: { ttl: 'noise sample', head: 'Gaussian Noise', body: 'A Gaussian noise vector, sampled independently for every ensemble member.' },
+                mlp: { ttl: 'noise embedding', head: '2-layer MLP', body: 'A small two-layer network that maps the raw Gaussian noise into a per-node feature vector the same width as the processor hidden dimension.' },
+                ln_noise: { ttl: 'noise embedding', head: 'LayerNorm', body: 'Normalises the MLP output, producing the final per-node noise embedding $\\nu$. This embedding is what both conditional LayerNorms in the processor read from to set $\\gamma$ and $\\beta$. The same noise embedding is passed to every transformer block.' },
+                pin: { ttl: 'input', head: 'Processor tokens', body: 'One latent vector per O96 processor node — 40,320 "tokens", produced by the encoder. Unchanged from the deterministic AIFS.' },
+                cln1: { ttl: 'conditional layer norm', head: 'Standard vs Conditional LN', body: 'Conditional LN replaces the affine transformation, $$\\mathrm{LN}(x) = \\gamma \\odot x^\\prime + \\beta,$$ by a noise-dependent version, $$\\mathrm{CLN}(x) = \\gamma(\\boldsymbol{\\xi}) \\odot x^\\prime + \\beta(\\boldsymbol{\\xi}).$$ In a standard LN, $\\gamma$ and $\\beta$ are fixed learned constants. In the conditional version they are generated on-the-fly from the noise sample $\\boldsymbol{\\xi}$.' },
+                attn: { ttl: 'attention', head: 'Multi-Head Self-Attention', body: 'Sliding-window attention along latitude bands. Identical to the deterministic AIFS.' },
+                cln2: { ttl: 'conditional layer norm', head: 'Conditional LayerNorm (again)', body: 'Second pre-norm before the position-wise MLP. Same mechanism as the first Conditional LayerNorm with the same noise embedding.' },
+                mlp_proc: { ttl: 'feed-forward', head: 'Position-wise MLP', body: 'Standard transformer feed-forward block with GELU activation. No change from the deterministic AIFS.' },
+                pout: { ttl: 'output', head: 'To next layer', body: 'Output latents on the same O96 grid. Sixteen such blocks are stacked; each draws from the same noise embedding for that forecast step.' },
+            };
+
+            function updateClnInfo(id) {
+                const d = CLN_DESC[id];
+                if (!d) return;
+                clnInfo.innerHTML = `<div class="ttl">${d.ttl}</div><div class="head">${d.head}</div><div class="b">${d.body}</div>`;
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    window.MathJax.typesetPromise([clnInfo]).catch(() => {});
+                }
+            }
+
+            function renderCln(active) {
+                let svg = `<defs>` +
+                    `<marker id="clnArr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#868d99"/></marker>` +
+                    `<marker id="clnWarm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${COLOR.warm}"/></marker>` +
+                    `</defs>`;
+                svg += CLN_LINES;
+                // γ, β labels above the warm branch arrows
+                svg += `<text x="232" y="119" text-anchor="middle" font-family="Fira Code" font-size="11" font-weight="500" fill="${COLOR.warm}">γ, β</text>`;
+                svg += `<text x="232" y="303" text-anchor="middle" font-family="Fira Code" font-size="11" font-weight="500" fill="${COLOR.warm}">γ, β</text>`;
+                CLN_BOXES.forEach(s => { svg += clnBox(s, active); });
+                clnSvg.innerHTML = svg;
+                clnSvg.querySelectorAll('rect.clnnode').forEach(r => {
+                    r.addEventListener('click', () => {
+                        const id = r.dataset.id;
+                        renderCln(id);
+                        updateClnInfo(id);
+                    });
+                });
+            }
+            renderCln('cln1');
+            updateClnInfo('cln1');
+
+            /* ── Low-pass (down/upsampling) widget ── */
+            const lpSvg = document.getElementById('lpSvg');
+            const lpToggle = document.getElementById('lpToggle');
+            if (lpSvg && lpToggle) {
+                // low-frequency synoptic field value in [-1, 1]
+                function lpFieldVal(u, v, seed) {
+                    const lf = Math.sin((1.6 * u + 0.2 + 0.35 * seed) * 6.2832) * Math.cos((1.1 * v + 0.4 + 0.18 * seed) * 6.2832);
+                    const mf = Math.sin((2.8 * u + 0.7 + 0.51 * seed) * 6.2832) * Math.cos((2.3 * v + 0.9 - 0.22 * seed) * 6.2832);
+                    return Math.max(-1, Math.min(1, (lf + 0.5 * mf) / 1.4));
+                }
+                // same field with extra small-scale structure (a "sharp" state)
+                function lpFieldHi(u, v, seed) {
+                    const base = lpFieldVal(u, v, seed);
+                    const hf = Math.sin((6.4 * u + 1.1 + 0.30 * seed) * 6.2832) * Math.cos((5.6 * v + 0.3 - 0.40 * seed) * 6.2832);
+                    const hf2 = Math.sin((9.1 * u + 0.5 - 0.20 * seed) * 6.2832) * Math.cos((8.3 * v + 1.2 + 0.25 * seed) * 6.2832);
+                    return Math.max(-1, Math.min(1, base * 0.82 + 0.26 * hf + 0.14 * hf2));
+                }
+
+                let lpClipId = 0;
+                const sub = s => `<tspan baseline-shift="sub" font-size="8">${s}</tspan>`;
+
+                // a field-filled rounded card; opt.blur applies a low-pass blur,
+                // opt.extra is clipped SVG drawn on top (contours, grain)
+                function lpCard(x, y, w, h, valFn, nx, ny, opt) {
+                    opt = opt || {};
+                    const id = 'lpc' + (lpClipId++);
+                    const oscale = opt.opacityScale != null ? opt.opacityScale : 0.6;
+                    const cw = w / nx, ch = h / ny;
+                    let cells = '';
+                    for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+                        const val = valFn((i + 0.5) / nx, (j + 0.5) / ny);
+                        const col = val >= 0 ? COLOR.warm : COLOR.cool;
+                        const op = (Math.abs(val) * oscale).toFixed(3);
+                        cells += `<rect x="${(x + i * cw).toFixed(1)}" y="${(y + j * ch).toFixed(1)}" width="${(cw + 0.7).toFixed(1)}" height="${(ch + 0.7).toFixed(1)}" fill="${col}" opacity="${op}"/>`;
+                    }
+                    const blur = opt.blur ? ' filter="url(#lpBlur)"' : '';
+                    return `<clipPath id="${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6"/></clipPath>`
+                        + `<g clip-path="url(#${id})"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff"/><g${blur}>${cells}</g>${opt.extra || ''}</g>`
+                        + `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="none" stroke="${opt.stroke || COLOR.rule}" stroke-width="${opt.sw || 1.2}"/>`;
+                }
+
+                function lpText(x, y, str, opt) {
+                    opt = opt || {};
+                    return `<text x="${x}" y="${y}" text-anchor="${opt.anchor || 'middle'}" font-family="${opt.mono ? "'Fira Code', monospace" : 'Inter, sans-serif'}" font-size="${opt.fs || 11}" font-weight="${opt.fw || 600}" fill="${opt.fill || COLOR.ink}">${str}</text>`;
+                }
+                function lpMath(x, y, str, fs) {
+                    return `<text x="${x}" y="${y}" text-anchor="middle" font-family="'STIX Two Math', Georgia, serif" font-style="italic" font-size="${fs || 13}" fill="${COLOR.ink}">${str}</text>`;
+                }
+                function lpArrow(x1, y1, x2, y2) {
+                    return `<path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="#868d99" stroke-width="1.3" fill="none" marker-end="url(#lpArrow)"/>`;
+                }
+                function lpPlus(cx, cy) {
+                    return `<circle cx="${cx}" cy="${cy}" r="9" fill="#fff" stroke="rgba(15,23,42,0.45)" stroke-width="1.2"/>`
+                        + `<line x1="${cx - 4.5}" y1="${cy}" x2="${cx + 4.5}" y2="${cy}" stroke="rgba(15,23,42,0.6)" stroke-width="1.3"/>`
+                        + `<line x1="${cx}" y1="${cy - 4.5}" x2="${cx}" y2="${cy + 4.5}" stroke="rgba(15,23,42,0.6)" stroke-width="1.3"/>`;
+                }
+                const europeImg = '../../assets/images/europe_map.png';
+                // large-scale geopotential-style field: a NE→SW gradient with one
+                // closed low (SW) and one high (NE) — smooth, like a 500 hPa map
+                function lpGeo(u, v) {
+                    const grad = 0.85 * (0.5 - v) + 0.45 * (u - 0.5);
+                    const low = -1.05 * Math.exp(-(Math.pow(u - 0.30, 2) / 0.045 + Math.pow(v - 0.60, 2) / 0.055));
+                    const high = 0.75 * Math.exp(-(Math.pow(u - 0.74, 2) / 0.075 + Math.pow(v - 0.32, 2) / 0.07));
+                    return Math.max(-1, Math.min(1, grad + low + high));
+                }
+                // same field with multi-octave small-scale roughness (pre-truncation,
+                // whose isolines come out wiggly)
+                function lpGeoRough(u, v, seed) {
+                    const h1 = Math.sin((12.0 * u + 2.0 + 0.30 * seed) * 6.2832) * Math.cos((9.5 * v + 0.5) * 6.2832);
+                    const h2 = Math.sin((18.0 * u + 0.7) * 6.2832) * Math.cos((16.0 * v + 1.3 + 0.20 * seed) * 6.2832);
+                    return Math.max(-1, Math.min(1, lpGeo(u, v) + 0.10 * h1 + 0.055 * h2));
+                }
+                // marching-squares iso-contour path-data at one level
+                function lpIso(x, y, w, h, valFn, level, gx, gy) {
+                    const dx = w / gx, dy = h / gy;
+                    const V = [];
+                    for (let i = 0; i <= gx; i++) { V[i] = []; for (let j = 0; j <= gy; j++) V[i][j] = valFn(i / gx, j / gy); }
+                    const it = (a, b) => Math.abs(b - a) < 1e-9 ? 0.5 : (level - a) / (b - a);
+                    let d = '';
+                    for (let i = 0; i < gx; i++) for (let j = 0; j < gy; j++) {
+                        const x0 = x + i * dx, y0 = y + j * dy, x1 = x0 + dx, y1 = y0 + dy;
+                        const tl = V[i][j], tr = V[i + 1][j], br = V[i + 1][j + 1], bl = V[i][j + 1];
+                        let idx = 0; if (tl > level) idx |= 8; if (tr > level) idx |= 4; if (br > level) idx |= 2; if (bl > level) idx |= 1;
+                        if (idx === 0 || idx === 15) continue;
+                        const T = () => [x0 + dx * it(tl, tr), y0], R = () => [x1, y0 + dy * it(tr, br)], B = () => [x0 + dx * it(bl, br), y1], L = () => [x0, y0 + dy * it(tl, bl)];
+                        const seg = (p, q) => { d += `M ${p[0].toFixed(1)} ${p[1].toFixed(1)} L ${q[0].toFixed(1)} ${q[1].toFixed(1)} `; };
+                        switch (idx) {
+                            case 1: case 14: seg(L(), B()); break;
+                            case 2: case 13: seg(B(), R()); break;
+                            case 3: case 12: seg(L(), R()); break;
+                            case 4: case 11: seg(T(), R()); break;
+                            case 6: case 9: seg(T(), B()); break;
+                            case 7: case 8: seg(L(), T()); break;
+                            case 5: seg(L(), T()); seg(B(), R()); break;
+                            case 10: seg(T(), R()); seg(L(), B()); break;
+                        }
+                    }
+                    return d;
+                }
+                function lpContours(x, y, w, h, valFn, gx, gy) {
+                    const levels = [-0.78, -0.6, -0.42, -0.24, -0.06, 0.12, 0.3, 0.48, 0.64];
+                    let d = '';
+                    for (const lv of levels) d += lpIso(x, y, w, h, valFn, lv, gx, gy);
+                    return `<path d="${d}" fill="none" stroke="rgba(15,23,42,0.6)" stroke-width="0.9"/>`;
+                }
+                // diverging geopotential colour: -1 orange · 0 pale · +1 blue
+                function lpColor(val) {
+                    const mix = (a, b, k) => (a + (b - a) * k) | 0;
+                    let r, g, b;
+                    if (val < 0) { const k = val + 1; r = mix(244, 250, k); g = mix(158, 244, k); b = mix(66, 222, k); }
+                    else { const k = val; r = mix(250, 56, k); g = mix(244, 160, k); b = mix(222, 214, k); }
+                    return `rgb(${r},${g},${b})`;
+                }
+                // smooth filled geopotential-style colour wash (low-frequency field)
+                function lpFilled(x, y, w, h, nx, ny) {
+                    const cw = w / nx, ch = h / ny; let s = '';
+                    for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+                        const val = lpGeo((i + 0.5) / nx, (j + 0.5) / ny);
+                        s += `<rect x="${(x + i * cw).toFixed(1)}" y="${(y + j * ch).toFixed(1)}" width="${(cw + 0.8).toFixed(1)}" height="${(ch + 0.8).toFixed(1)}" fill="${lpColor(val)}" opacity="0.62"/>`;
+                    }
+                    return s;
+                }
+                function lpGridLines(x, y, w, h) {
+                    let s = '';
+                    for (let k = 1; k <= 3; k++) { const gx = (x + w * k / 4).toFixed(1); s += `<line x1="${gx}" y1="${y}" x2="${gx}" y2="${y + h}" stroke="rgba(15,23,42,0.15)" stroke-width="0.7"/>`; }
+                    for (let k = 1; k <= 2; k++) { const gy = (y + h * k / 3).toFixed(1); s += `<line x1="${x}" y1="${gy}" x2="${x + w}" y2="${gy}" stroke="rgba(15,23,42,0.15)" stroke-width="0.7"/>`; }
+                    return s;
+                }
+                // a Figure-3-style panel: Europe map + filled field + grid + black isolines
+                function lpMapPanel(x, y, w, h, rough, seed) {
+                    const id = 'lpc' + (lpClipId++);
+                    const valFn = rough ? ((u, v) => lpGeoRough(u, v, seed)) : ((u, v) => lpGeo(u, v));
+                    let inner = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff"/>`;
+                    inner += `<g filter="url(#lpBlur)">${lpFilled(x, y, w, h, 40, 26)}</g>`;
+                    inner += `<image href="${europeImg}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" opacity="0.85" style="mix-blend-mode:multiply; filter: saturate(1.6) contrast(1.45);"/>`;
+                    inner += lpGridLines(x, y, w, h);
+                    inner += lpContours(x, y, w, h, valFn, rough ? 66 : 46, rough ? 44 : 30);
+                    return `<clipPath id="${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6"/></clipPath>`
+                        + `<g clip-path="url(#${id})">${inner}</g>`
+                        + `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="none" stroke="${COLOR.rule}" stroke-width="1.2"/>`;
+                }
+
+                const lpDefs = `<defs>`
+                    + `<marker id="lpArrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#868d99"/></marker>`
+                    + `<filter id="lpBlur" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.6"/></filter>`
+                    + `</defs>`;
+
+                // ── View 1: the operation (two branches converging at +) ──
+                function renderOp() {
+                    const CW = 96, CH = 72, ROWY = 116, MIDY = ROWY + CH / 2;
+                    const xX = 18, xC = 150, xS = 288;
+                    const PX = xS + CW + 23;                  // plus, fixed gap past the smoothed card
+                    const arm = (PX - 11) - (xS + CW + 2);    // length of the in-arrow line
+                    const xR = (PX + 11) + arm + 4;           // result card → out-arrow matches the in-arrow
+                    const capY = ROWY + CH + 17;
+                    let s = lpDefs;
+
+                    // input state — the single current state x_t (feeds both branches)
+                    s += lpCard(xX, ROWY, CW, CH, (u, v) => lpFieldHi(u, v, 1.0), 18, 13, {});
+
+                    // bottom branch — low-pass: D → coarse → U → smoothed
+                    s += lpCard(xC, ROWY, CW, CH, (u, v) => lpFieldVal(u, v, 1.0), 7, 5, {});
+                    s += lpCard(xS, ROWY, CW, CH, (u, v) => lpFieldVal(u, v, 1.0), 7, 5, { blur: true });
+                    s += lpCard(xR, ROWY, CW, CH, (u, v) => lpFieldHi(u, v, 1.55), 18, 13, {});
+                    s += lpArrow(xX + CW + 2, MIDY, xC - 4, MIDY);
+                    s += lpArrow(xC + CW + 2, MIDY, xS - 4, MIDY);
+                    s += lpText((xX + CW + xC) / 2, MIDY - 9, 'D', { mono: true, fs: 12, fill: COLOR.soft });
+                    s += lpText((xC + CW + xS) / 2, MIDY - 9, 'U', { mono: true, fs: 12, fill: COLOR.soft });
+                    s += lpArrow(xS + CW + 2, MIDY, PX - 11, MIDY);
+                    s += lpPlus(PX, MIDY);
+                    s += lpArrow(PX + 11, MIDY, xR - 4, MIDY);
+
+                    // top branch — model: full-res input → f_θ(x_{t-6}, x_t) → tendency → +
+                    const FW = 120, FH = 44, FY = 24, fcx = xX + CW / 2, FX = fcx - FW / 2;
+                    s += lpArrow(fcx, ROWY, fcx, FY + FH + 2);
+                    s += `<rect x="${FX}" y="${FY}" width="${FW}" height="${FH}" rx="6" fill="#fffaf0" stroke="${COLOR.warm}" stroke-width="1.6"/>`;
+                    s += `<text x="${fcx}" y="${FY + FH / 2 + 6}" text-anchor="middle" font-family="'STIX Two Math', Georgia, serif" font-style="italic" font-size="14" fill="#78350f">f${sub('θ')} <tspan font-size="12" fill="${COLOR.soft}">(<tspan font-weight="bold">x</tspan>${sub('t−6')}, <tspan font-weight="bold">x</tspan>${sub('t')})</tspan></text>`;
+                    const TW = 92, TH = 48, TX = PX - TW / 2, TY = 24;
+                    s += lpCard(TX, TY, TW, TH, (u, v) => lpFieldHi(u, v, 3.2), 14, 8, { opacityScale: 0.5 });
+                    s += lpArrow(FX + FW + 2, FY + FH / 2, TX - 4, TY + TH / 2);
+                    s += lpArrow(PX, TY + TH + 2, PX, MIDY - 11);
+                    s += `<text x="${PX}" y="${TY - 7}" text-anchor="middle" font-family="'STIX Two Math', Georgia, serif" font-style="italic" font-size="12" fill="${COLOR.soft}">tendency</text>`;
+
+                    // labels under each card
+                    s += lpMath(xX + CW / 2, capY, `<tspan font-weight="bold">x</tspan>${sub('t')}`);
+                    s += lpText(xC + CW / 2, capY, 'O32 coarse', { fs: 11, fill: COLOR.soft });
+                    s += lpMath(xS + CW / 2, capY, `U(D(<tspan font-weight="bold">x</tspan>${sub('t')}))`);
+                    s += lpMath(xR + CW / 2, capY, `<tspan font-weight="bold">x&#x302;</tspan>${sub('t+6')}`);
+                    return s;
+                }
+
+                // ── View 2: why it matters (Figure 3 — wiggly vs smooth isolines) ──
+                function renderEffect() {
+                    const PW = 232, PH = 150, PY = 42, ax = 20, bx = 308;
+                    let s = lpDefs;
+                    s += lpText(ax + PW / 2, 28, 'without low-pass', { fs: 11, mono: true, fill: '#b45309' });
+                    s += lpText(bx + PW / 2, 28, 'with low-pass', { fs: 11, mono: true, fill: '#0369a1' });
+                    s += lpMapPanel(ax, PY, PW, PH, true, 2.0);
+                    s += lpMapPanel(bx, PY, PW, PH, false, 2.0);
+                    s += lpText(ax + PW / 2, PY + PH + 22, 'erroneous small-scale features', { fs: 10, fill: COLOR.muted, fw: 500 });
+                    s += lpText(bx + PW / 2, PY + PH + 22, 'smooth contours', { fs: 10, fill: COLOR.muted, fw: 500 });
+                    return s;
+                }
+
+                function renderLp(view) {
+                    lpClipId = 0;
+                    lpSvg.innerHTML = view === 'effect' ? renderEffect() : renderOp();
+                }
+                function setLpView(view) {
+                    lpToggle.querySelectorAll('.lp-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+                    renderLp(view);
+                }
+                lpToggle.querySelectorAll('.lp-btn').forEach(b => {
+                    b.addEventListener('click', () => setLpView(b.dataset.view));
+                });
+                setLpView('op');
+            }
+
+            /* ── Ensemble training pipeline ── */
+            const ensFlow = document.getElementById('ensFlow');
+            const ensCap = document.getElementById('ensCap');
+
+            if (ensFlow && ensCap) {
+                const europeImgUrl = '../../assets/images/europe_map.png';
+
+                // procedural synoptic field for a forecast/state card
+                function fieldSvg(seed) {
+                    const n = 12, m = 9, ww = 104, hh = 76;
+                    let s = `<svg class="field" viewBox="0 0 ${ww} ${hh}" preserveAspectRatio="none">`;
+                    for (let i = 0; i < n; i++) {
+                        for (let j = 0; j < m; j++) {
+                            const u = (i + 0.5) / n, v = (j + 0.5) / m;
+                            const lf = Math.sin((1.6 * u + 0.2 + 0.35 * seed) * 6.2832) * Math.cos((1.1 * v + 0.4 + 0.18 * seed) * 6.2832);
+                            const mf = Math.sin((2.8 * u + 0.7 + 0.51 * seed) * 6.2832) * Math.cos((2.3 * v + 0.9 - 0.22 * seed) * 6.2832);
+                            const val = Math.max(-1, Math.min(1, (lf + 0.5 * mf) / 1.4));
+                            const col = val >= 0 ? COLOR.warm : COLOR.cool;
+                            const op = (Math.abs(val) * 0.55).toFixed(3);
+                            s += `<rect x="${(i * ww / n).toFixed(1)}" y="${(j * hh / m).toFixed(1)}" width="${(ww / n + 0.6).toFixed(1)}" height="${(hh / m + 0.6).toFixed(1)}" fill="${col}" opacity="${op}"/>`;
+                        }
+                    }
+                    return s + `</svg>`;
+                }
+
+                // random-static texture for a noise card (ξ ~ N(0, I))
+                function noiseSvg(seed) {
+                    const nx = 22, ny = 16, ww = 104, hh = 76;
+                    const cw = ww / nx, ch = hh / ny;
+                    let st = seed * 2654435761 + 12345;
+                    const rand = () => { st = (st * 1103515245 + 12345) & 0x7fffffff; return st / 0x7fffffff; };
+                    let s = `<svg class="noise" viewBox="0 0 ${ww} ${hh}" preserveAspectRatio="none">`;
+                    for (let i = 0; i < nx; i++) {
+                        for (let j = 0; j < ny; j++) {
+                            const v = rand();
+                            // bias toward dark, with occasional bright cells → TV-static look
+                            const op = (v * v * 0.9).toFixed(2);
+                            s += `<rect x="${(i * cw).toFixed(2)}" y="${(j * ch).toFixed(2)}" width="${(cw + 0.4).toFixed(2)}" height="${(ch + 0.4).toFixed(2)}" fill="#e2e8f0" opacity="${op}"/>`;
+                        }
+                    }
+                    return s + `</svg>`;
+                }
+
+                // a deck of 3 stacked cards; nth-child(1) is the front card (z-index 3),
+                // so card 1 sits on top and cards 2, 3 peek out behind it
+                function deck(dataId, extraClass, cardFn) {
+                    return `<div class="ens-deck" data-id="${dataId}">
+                        <div class="ens-card ${extraClass}">${cardFn(1)}</div>
+                        <div class="ens-card ${extraClass}">${cardFn(2)}</div>
+                        <div class="ens-card ${extraClass}">${cardFn(3)}</div>
+                    </div>`;
+                }
+
+                // a single (non-stacked) card — for the shared initial state and the y target
+                function single(dataId, extraClass, content) {
+                    return `<div class="ens-deck single" data-id="${dataId}">
+                        <div class="ens-card ${extraClass}">${content}</div>
+                    </div>`;
+                }
+
+                // model deck: M instances of f_θ that all share the same weights θ.
+                // The cards carry the identical f_θ glyph and a "shared θ" tag to
+                // make explicit that this is one network reused, not M models.
+                const netGlyph = `<span class="glyph">f<sub>θ</sub></span>`;
+                const netDeck = `<div class="ens-deck net-deck" data-id="net">
+                    <div class="ens-card net">${netGlyph}</div>
+                    <div class="ens-card net">${netGlyph}</div>
+                    <div class="ens-card net">${netGlyph}</div>
+                    <span class="ens-net-badge">shared&nbsp;θ</span>
+                </div>`;
+
+                // arrow colour: opaque, so a line never shows through its own head
+                const ARR = '#868d99';
+
+                // horizontal arrow connector (left → right)
+                const arrow = `<div class="ens-conn"><svg viewBox="0 0 38 28" preserveAspectRatio="xMidYMid meet">
+                    <defs><marker id="ensArrH" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                        <path d="M0,0 L10,5 L0,10 z" fill="${ARR}"/></marker></defs>
+                    <path d="M 2 14 L 30 14" fill="none" stroke="${ARR}" stroke-width="1.6" marker-end="url(#ensArrH)"/>
+                </svg></div>`;
+
+                // vertical arrow connector (top → down), for y target → afCRPS
+                const arrowDown = `<div class="ens-conn v"><svg viewBox="0 0 28 30" preserveAspectRatio="xMidYMid meet">
+                    <defs><marker id="ensArrV" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+                        <path d="M0,0 L10,5 L0,10 z" fill="${ARR}"/></marker></defs>
+                    <path d="M 14 2 L 14 24" fill="none" stroke="${ARR}" stroke-width="1.6" marker-end="url(#ensArrV)"/>
+                </svg></div>`;
+
+                // assemble the flow:
+                //   [state(single) + noise(deck)] → [f_θ deck] → [forecast deck] → afCRPS ← y(single)
+                ensFlow.innerHTML = `
+                    <div class="ens-inputs">
+                        <div class="ens-card-lbl">${single('init', '', `${fieldSvg(0.2)}<img src="${europeImgUrl}" alt="">`)}<span class="ens-clbl">ERA5 · t</span></div>
+                        <div class="ens-plus">+</div>
+                        ${deck('noise', '', i => `<div class="noise-bg"></div>${noiseSvg(5 + i * 4)}`)}
+                    </div>
+
+                    ${arrow}
+
+                    ${netDeck}
+
+                    ${arrow}
+
+                    ${deck('pred', '', i => `${fieldSvg(2.3 + 1.4 * i)}<img src="${europeImgUrl}" alt="">`)}
+
+                    ${arrow}
+
+                    <div class="ens-loss-col">
+                        <div class="ens-target-above">
+                            <div class="ens-card-lbl">${single('target', 'target', `${fieldSvg(7.1)}<img src="${europeImgUrl}" alt="">`)}<span class="ens-clbl">ERA5 · t+6h</span></div>
+                            ${arrowDown}
+                        </div>
+                        <div class="ens-loss-node" data-id="loss">afCRPS</div>
+                    </div>
+                `;
+
+                // ── interactivity ──
+                const blocks = Array.from(ensFlow.querySelectorAll('[data-id]'));
+
+                const CAPTIONS = {
+                    init: {
+                        title: 'initial state · shared',
+                        body: `Every ensemble member starts from the same initial state $\\mathbf{x}_t$,
+                               taken from the ERA5 analysis. At training time, none of the ensemble spread comes
+                               from the initial conditions; it all comes from the noise.`,
+                    },
+                    noise: {
+                        title: 'noise · one sample per member',
+                        body: `Each member draws its own Gaussian noise $\\boldsymbol{\\xi} \\sim \\mathcal{N}(0, \\mathbf{I})$. The
+                               noise enters through the conditional layer norms in the processor, so the same input under
+                               different $\\boldsymbol{\\xi}$ yields different forecasts.`,
+                    },
+                    net: {
+                        title: 'model instances · shared weights',
+                        body: `The ensemble members are propagated in parallel by $M$ separate model instances that all use the
+                               same weights $\\theta$.`,
+                    },
+                    pred: {
+                        title: 'forecasts · one per member',
+                        body: `$M$ candidate forecasts, each a full atmospheric state at $t+6$h.`,
+                    },
+                    target: {
+                        title: 'target · deterministic y',
+                        body: `A single ground-truth state $\\mathbf{y}$ from the ERA5 analysis at $t+6$h. The loss scores a
+                               whole forecast distribution against this one deterministic observation.`,
+                    },
+                    loss: {
+                        title: 'afCRPS loss',
+                        body: `The $M$ forecasts are collected with a differentiable all-gather and scored jointly using the
+                               almost-fair CRPS against $\\mathbf{y}$.`,
+                    },
+                };
+
+                const DEFAULT_CAP = `<span class="ttl">click any block to inspect</span>
+                    All $M$ ensemble members start from the same initial state $\\mathbf{x}_t$, each with their own
+                    noise sample $\\boldsymbol{\\xi}$. The members are propagated forward by $M$ separate model instances
+                    with shared $\\theta$, producing $M$ different forecasts. They are gathered and scored jointly
+                    with the afCRPS loss against a single deterministic ERA5 target $\\mathbf{y}$.`;
+
+                function setFocus(id) {
+                    blocks.forEach(el => el.classList.remove('focus'));
+                    if (id && CAPTIONS[id]) {
+                        const el = blocks.find(b => b.dataset.id === id);
+                        if (el) el.classList.add('focus');
+                        ensFlow.classList.add('has-focus');
+                        const c = CAPTIONS[id];
+                        ensCap.innerHTML = `<span class="ttl">${c.title}</span> ${c.body}`;
+                    } else {
+                        ensFlow.classList.remove('has-focus');
+                        ensCap.innerHTML = DEFAULT_CAP;
+                    }
+                    if (window.MathJax && window.MathJax.typesetPromise) {
+                        window.MathJax.typesetPromise([ensCap]).catch(() => {});
+                    }
+                }
+
+                blocks.forEach(el => {
+                    el.addEventListener('click', () => {
+                        setFocus(el.classList.contains('focus') ? null : el.dataset.id);
+                    });
+                });
+
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    window.MathJax.typesetPromise([ensCap, ensFlow]).catch(() => {});
+                }
+            }
+
+            /* ── citations ── */
+            const cites = [
+                'Lang et al. 2024 — AIFS-CRPS (arXiv:2412.15832)',
+                'Lang et al. 2024 — AIFS (arXiv:2406.01465)',
+                'Lang et al. 2024 — Enter the Ensembles (ECMWF newsletter, diffusion-based AIFS prototype)',
+                'ECMWF Newsletter 185 — AIFS-ENS becomes operational',
+                'ecmwf/anemoi-core, issue #39 — [Feature] Add tendency training (Aug 2024)',
+                'Price et al. 2023 — GenCast (arXiv:2312.15796)',
+                'Ferro 2013 — Fair scores for ensemble forecasts',
+                'Ferro, Richardson, Weigel 2008 — On the effect of ensemble size on CRPS',
+                'Hersbach 2000 — Decomposition of the CRPS',
+                'Pacchiardi et al. 2024 — Probabilistic forecasting via scoring rule minimisation',
+                'Gneiting & Raftery 2007 — Strictly proper scoring rules',
+                'Moldovan et al. 2025 — AIFS 1.1 (arXiv:2509.18994)',
+                'Lang, Leutbecher, Maciel 2025 — Multi-scale CRPS loss (arXiv:2506.10868)',
+            ];
+            const ul = document.getElementById('cites');
+            cites.forEach(c => { const li = document.createElement('li'); li.textContent = c; ul.appendChild(li); });
+        })();
+    </script>
+</body>
+
+</html>
