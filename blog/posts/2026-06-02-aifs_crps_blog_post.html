@@ -451,7 +451,7 @@
             transition: background 0.15s, color 0.15s;
         }
 
-        .lp-btn + .lp-btn {
+        .lp-btn+.lp-btn {
             border-left: 1px solid var(--rule);
         }
 
@@ -497,9 +497,12 @@
 
         /* a deck = fixed footprint that already contains the card offsets */
         .ens-deck {
-            --cw: 104px;     /* card width  */
-            --ch: 76px;      /* card height */
-            --off: 7px;      /* per-card diagonal offset */
+            --cw: 104px;
+            /* card width  */
+            --ch: 76px;
+            /* card height */
+            --off: 7px;
+            /* per-card diagonal offset */
             position: relative;
             width: calc(var(--cw) + 2 * var(--off));
             height: calc(var(--ch) + 2 * var(--off));
@@ -528,11 +531,25 @@
         }
 
         /* back-to-front: card 3 sits deepest (bottom-right), card 1 on top */
-        .ens-card:nth-child(3) { transform: translate(calc(2 * var(--off)), calc(2 * var(--off))); z-index: 1; }
-        .ens-card:nth-child(2) { transform: translate(var(--off), var(--off)); z-index: 2; }
-        .ens-card:nth-child(1) { transform: translate(0, 0); z-index: 3; }
+        .ens-card:nth-child(3) {
+            transform: translate(calc(2 * var(--off)), calc(2 * var(--off)));
+            z-index: 1;
+        }
 
-        .ens-deck.focus .ens-card { border-color: var(--kicker); }
+        .ens-card:nth-child(2) {
+            transform: translate(var(--off), var(--off));
+            z-index: 2;
+        }
+
+        .ens-card:nth-child(1) {
+            transform: translate(0, 0);
+            z-index: 3;
+        }
+
+        .ens-deck.focus .ens-card {
+            border-color: var(--kicker);
+        }
+
         .ens-deck.focus .ens-card:nth-child(1) {
             box-shadow: 0 10px 22px -10px rgba(245, 158, 11, 0.55);
         }
@@ -638,7 +655,9 @@
             box-shadow: 0 4px 10px -4px rgba(15, 23, 42, 0.55);
         }
 
-        .ens-flow.has-focus .ens-deck:not(.focus) .ens-net-badge { opacity: 0.5; }
+        .ens-flow.has-focus .ens-deck:not(.focus) .ens-net-badge {
+            opacity: 0.5;
+        }
 
         /* target card (y) */
         /* a card with a label sitting just above it */
@@ -691,7 +710,11 @@
             height: 30px;
         }
 
-        .ens-conn svg { width: 100%; height: 100%; overflow: visible; }
+        .ens-conn svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
 
         /* loss column: afCRPS node sits on the flow baseline, with the single
            y target floated directly above it (so the incoming arrow from the
@@ -737,11 +760,18 @@
         .ens-flow.has-focus .ens-deck:not(.focus),
         .ens-flow.has-focus .ens-loss-node:not(.focus),
         .ens-flow.has-focus .ens-plus,
-        .ens-flow.has-focus .ens-conn { opacity: 0.4; }
+        .ens-flow.has-focus .ens-conn {
+            opacity: 0.4;
+        }
 
-        .ens-flow.has-focus .ens-deck:not(.focus) { filter: saturate(0.65); }
+        .ens-flow.has-focus .ens-deck:not(.focus) {
+            filter: saturate(0.65);
+        }
 
-        .ens-deck, .ens-loss-node, .ens-plus, .ens-conn {
+        .ens-deck,
+        .ens-loss-node,
+        .ens-plus,
+        .ens-conn {
             transition: opacity 220ms ease, filter 220ms ease;
         }
 
@@ -770,8 +800,13 @@
         }
 
         @media (max-width: 720px) {
-            .ens-conn { display: none; }
-            .ens-flow { gap: 16px; }
+            .ens-conn {
+                display: none;
+            }
+
+            .ens-flow {
+                gap: 16px;
+            }
         }
 
         /* Reveal */
@@ -871,7 +906,8 @@
                 <div class="meta">
                     <span>June 02, 2026</span>
                     <div class="tags">
-                        <span class="tag">Ensembles</span>, <span class="tag">Probabilistic Modelling</span>, <span class="tag">Weather
+                        <span class="tag">Ensembles</span>, <span class="tag">Probabilistic Modelling</span>, <span
+                            class="tag">Weather
                             Forecasting</span>
                     </div>
                 </div>
@@ -879,74 +915,105 @@
 
             <div class="blog-post-content">
 
-                <p>This is the second post in a series on ECMWF's ML-based weather forecasting models. In the <a href="2026-05-20-aifs_blog_post.html">last post</a>,
-                    we looked at the first, deterministic version of the data-driven, transformer-based weather forecasting system.
-                    In this post, we're looking at the <a href="https://arxiv.org/abs/2412.15832">follow-up paper</a> (Lang et al.
+                <p>This is the second post in a series on ECMWF's ML-based weather forecasting models. In the <a
+                        href="2026-05-20-aifs_blog_post.html">last post</a>,
+                    we looked at the first, deterministic version of the data-driven, transformer-based weather
+                    forecasting system.
+                    In this post, we're looking at the <a href="https://arxiv.org/abs/2412.15832">follow-up paper</a>
+                    (Lang et al.
                     2024) that was released a few months after the first one.
                 </p>
 
                 <p>In the first post, we already mentioned the <em>double-penalty problem</em>, which leads
-                    the model to predict increasingly blurred features as the forecast horizon (and uncertainty) increases.
-                    This phenomenon occurred in all deterministic forecasting models up to this point, including GraphCast,
+                    the model to predict increasingly blurred features as the forecast horizon (and uncertainty)
+                    increases.
+                    This phenomenon occurred in all deterministic forecasting models up to this point, including
+                    GraphCast,
                     Pangu-Weather, and FourCastNet.
                 </p>
 
-                <p>While there are likely a number of ways to resolve this issue, the preferred approach for modelling teams
-                    (including the ECMWF team) has been to extend these deterministic models into probabilistic forecasts, which 
+                <p>While there are likely a number of ways to resolve this issue, the preferred approach for modelling
+                    teams
+                    (including the ECMWF team) has been to extend these deterministic models into probabilistic
+                    forecasts, which
                     yield entire ensembles of predictions rather than just one value.
                 </p>
 
-                <p>The reason this approach is so attractive is because it solves not only the blurring problem, but more importantly 
-                    also yields uncertainty estimates on the forecast. This has been integral to the usefulness of physics-based forecasts
-                    for a long time. And as a proud Bayesian and advocate for probabilistic machine learning, that is of course immensely satisfying
+                <p>The reason this approach is so attractive is because it solves not only the blurring problem, but
+                    more importantly
+                    also yields uncertainty estimates on the forecast. This has been integral to the usefulness of
+                    physics-based forecasts
+                    for a long time. And as a proud Bayesian and advocate for probabilistic machine learning, that is of
+                    course immensely satisfying
                     to me.
                 </p>
 
-                <p>The ECMWF modelling team decided to implement the probabilistic component by keeping most of the architecture of
+                <p>The ECMWF modelling team decided to implement the probabilistic component by keeping most of the
+                    architecture of
                     the deterministic AIFS model unchanged, and instead introducing a new training objective: the
-                    <em>Continuous Ranked Probability Score</em> (CRPS). We'll go through the implementation details in this post, and throughout
+                    <em>Continuous Ranked Probability Score</em> (CRPS). We'll go through the implementation details in
+                    this post, and throughout
                     I will assume that you have read the first post beforehand.
                 </p>
 
 
                 <h2 id="Probabilistic-Forecasts">Probabilistic Forecasts</h2>
 
-                <p>Before getting into the technical details of AIFS-CRPS, it's worth clarifying what an ensemble actually is.
-                    In weather forecasting, an ensemble is a set of plausible future trajectories of the atmosphere, each
-                    sharp individually, which together represent the probability distribution for the future atmospheric state.
+                <p>Before getting into the technical details of AIFS-CRPS, it's worth clarifying what an ensemble
+                    actually is.
+                    In weather forecasting, an ensemble is a set of plausible future trajectories of the atmosphere,
+                    each
+                    sharp individually, which together represent the probability distribution for the future atmospheric
+                    state.
                     ECMWF has been running physics-based ensembles for a long time. Their operational system, IFS-ENS,
-                    runs 50 perturbed copies of the same model, each starting from a slightly different initial condition 
-                    and/or subject to stochastic perturbations in their parametrisations. The output is 50 predictions, 
+                    runs 50 perturbed copies of the same model, each starting from a slightly different initial
+                    condition
+                    and/or subject to stochastic perturbations in their parametrisations. The output is 50 predictions,
                     which can be interpreted as a distribution over possible atmospheric states.
                 </p>
 
                 <p>For ML-based models, there are a number of ways you could implement this probabilistic component.
-                    You could simply run the deterministic model multiple times with perturbed initial conditions, but this
+                    You could simply run the deterministic model multiple times with perturbed initial conditions, but
+                    this
                     doesn't fix the blurring issue, and you're unlikely to get a well-calibrated ensemble that does not
-                    underestimate uncertainties. A more promising, and I'd say the most hyped, approach is using diffusion models.
-                    The flagship example is Google DeepMind's <a href="https://arxiv.org/abs/2312.15796">GenCast</a> (Price et al. 2023),
+                    underestimate uncertainties. A more promising, and I'd say the most hyped, approach is using
+                    diffusion models.
+                    The flagship example is Google DeepMind's <a href="https://arxiv.org/abs/2312.15796">GenCast</a>
+                    (Price et al. 2023),
                     and ECMWF experimented with this approach as well (<a
-                    href="https://www.ecmwf.int/en/about/media-centre/aifs-blog/2024/enter-ensembles">Enter the Ensembles</a>). Diffusion models have
-                    been quite popular in the image and video generation fields, and their rapid progress makes them a natural choice for 
+                        href="https://www.ecmwf.int/en/about/media-centre/aifs-blog/2024/enter-ensembles">Enter the
+                        Ensembles</a>). Diffusion models have
+                    been quite popular in the image and video generation fields, and their rapid progress makes them a
+                    natural choice for
                     the architecture. They are also by nature probabilistic: you start
-                    with random noise and iteratively shape it using the denoising network, meaning different input noise maps
-                    produce different predictions. In image generation, diffusion models also stand out for producing sharper, less blurry images
-                    compared to previous methods. So they were an obvious candidate for dealing with the issues of deterministic forecasting models,
+                    with random noise and iteratively shape it using the denoising network, meaning different input
+                    noise maps
+                    produce different predictions. In image generation, diffusion models also stand out for producing
+                    sharper, less blurry images
+                    compared to previous methods. So they were an obvious candidate for dealing with the issues of
+                    deterministic forecasting models,
                     and both GenCast and the ECMWF experiments produced promising results.
                 </p>
 
-                <p> In the end, the AIFS-CRPS model in the paper takes a different approach though. It uses an architecture setup that is almost identical to
-                    the deterministic AIFS from the first paper, but is trained with a distribution-aware objective instead of the MSE loss. Thanks to this, 
-                    each ensemble member is produced in a single forward pass through the network rather than a complicated denoising procedure. This has a <a
-                    href="https://www.ecmwf.int/en/newsletter/185/earth-system-science/aifs-ens-becomes-operational">bunch of
-                    advantages</a>: it's faster and easier to run, architectural improvements of the deterministic model translate directly to the ensemble
+                <p> In the end, the AIFS-CRPS model in the paper takes a different approach though. It uses an
+                    architecture setup that is almost identical to
+                    the deterministic AIFS from the first paper, but is trained with a distribution-aware objective
+                    instead of the MSE loss. Thanks to this,
+                    each ensemble member is produced in a single forward pass through the network rather than a
+                    complicated denoising procedure. This has a <a
+                        href="https://www.ecmwf.int/en/newsletter/185/earth-system-science/aifs-ens-becomes-operational">bunch
+                        of
+                        advantages</a>: it's faster and easier to run, architectural improvements of the deterministic
+                    model translate directly to the ensemble
                     model, and ultimately, these models even tend to produce better predictions.
                 </p>
 
                 <h2 id="What-Else-Changed">Updates To The AIFS Model</h2>
 
-                <p>Before we get to the scoring-rule and probabilistic stuff, it's worth mentioning a few non-probabilistic upgrades
-                    that ECMWF quietly slipped into the pipeline between the original AIFS and AIFS-CRPS papers. The model
+                <p>Before we get to the scoring-rule and probabilistic stuff, it's worth mentioning a few
+                    non-probabilistic upgrades
+                    that ECMWF quietly slipped into the pipeline between the original AIFS and AIFS-CRPS papers. The
+                    model
                     backbone is still the same encoder-processor-decoder we covered in <a
                         href="2026-05-20-aifs_blog_post.html">post 1</a>, with the same graph-transformer mappers and
                     the same 16-layer sliding-window-attention processor. But a few ingredients of the training
@@ -957,8 +1024,9 @@
                 <h3 id="Tendency-Switch">From Full States To Tendencies</h3>
 
                 <p>The original AIFS predicted the <em>full atmospheric state</em> at $t+6$h directly, not a
-                    tendency. The AIFS authors flagged it as a known weak spot in 
-                    <a href="https://arxiv.org/abs/2406.01465">the first paper</a>:</p>
+                    tendency. The AIFS authors flagged it as a known weak spot in
+                    <a href="https://arxiv.org/abs/2406.01465">the first paper</a>:
+                </p>
 
                 <blockquote>AIFS currently uses "full" normalised states in its training loss. This stands in
                     contrast to predicting normalised forecast tendencies as done by, e.g., Keisler [2022] or Lam et
@@ -966,12 +1034,15 @@
                     maps latent space variables to physical space may not be adequately normalised. <em>This will
                         likely be revised in a future AIFS upgrade.</em></blockquote>
 
-                        
 
-                <p>That revision is implemented in the AIFS-CRPS architecture. I actually found the exact moment of this change in the
+
+                <p>That revision is implemented in the AIFS-CRPS architecture. I actually found the exact moment of this
+                    change in the
                     codebase: <a href="https://github.com/ecmwf/anemoi-core/issues/39">issue #39 on
-                        <code>ecmwf/anemoi-core</code></a>. The AIFS-CRPS paper itself sweeps this change under the rug a little and only
-                    mentions it in passing in Section 2.1, which confused me quite a bit when reading the paper for the first time.
+                        <code>ecmwf/anemoi-core</code></a>. The AIFS-CRPS paper itself sweeps this change under the rug
+                    a little and only
+                    mentions it in passing in Section 2.1, which confused me quite a bit when reading the paper for the
+                    first time.
                     In practice, this means we change the prediction equation from
                     $$\hat{\mathbf{x}}_{t+6} = f_\theta\big(\mathbf{x}_{t-6},\, \mathbf{x}_t\big)$$
                     in the first paper to
@@ -980,19 +1051,25 @@
 
                 <h3 id="Low-Pass">Low-Pass Filter On The Input State</h3>
 
-                <p>The second change is closely related to the first. Since the AIFS-CRPS model is able to predict sharp features over
-                    the course of the rollout, rather than producing increasingly smoothed successive steps, small errors in the tendency
-                    predictions tend to pile up over the course of the rollout. This leads to implausible high-frequency features in the forecast.</p>
+                <p>The second change is closely related to the first. Since the AIFS-CRPS model is able to predict sharp
+                    features over
+                    the course of the rollout, rather than producing increasingly smoothed successive steps, small
+                    errors in the tendency
+                    predictions tend to pile up over the course of the rollout. This leads to implausible high-frequency
+                    features in the forecast.</p>
 
                 <p>The ECMWF team mitigates these errors by effectively applying a low-pass filter to the input state.
-                    In this way, the network has to redraw all the sharp features from scratch for every prediction, and doesn't have to
+                    In this way, the network has to redraw all the sharp features from scratch for every prediction, and
+                    doesn't have to
                     fix any of its own leftover noise from the previous step.
                 </p>
 
-                <p>They implement this low-pass filter by using down- and upsampling matrices $D$ and $U$. These are not neural networks, but
+                <p>They implement this low-pass filter by using down- and upsampling matrices $D$ and $U$. These are not
+                    neural networks, but
                     sparse interpolation matrices generated by ECMWF's <em>MIR</em> (Meteorological Interpolation and
                     Regridding) software, without any learnable parameters. The state update equation thus becomes
-                    $$\hat{\mathbf{x}}_{t+6} = U(D(\mathbf{x}_{t})) + f_\theta\big(\mathbf{x}_{t-6},\, \mathbf{x}_t\big).$$
+                    $$\hat{\mathbf{x}}_{t+6} = U(D(\mathbf{x}_{t})) + f_\theta\big(\mathbf{x}_{t-6},\,
+                    \mathbf{x}_t\big).$$
                 </p>
 
                 <div class="demo reveal">
@@ -1010,21 +1087,25 @@
                         <svg id="lpSvg" viewBox="0 0 560 228" preserveAspectRatio="xMidYMid meet"></svg>
                     </div>
                     <div class="demo-foot">$D$ and $U$ are fixed sparse interpolation matrices from ECMWF's MIR
-                        package with no learnable parameters. The network computes the tendency from the full-resolution input.</div>
+                        package with no learnable parameters. The network computes the tendency from the full-resolution
+                        input.</div>
                 </div>
 
 
                 <h3 id="Training-Curriculum">Changes To The Training Curriculum</h3>
 
-                <p>Improvements have also been made to the training procedure. The first paper had a three-phase training
+                <p>Improvements have also been made to the training procedure. The first paper had a three-phase
+                    training
                     schedule: pretrain on single 6 h steps, then a rollout fine-tuning phase that smoothly grew the
                     forecast window from 6 h to 72 h, then an operational-analysis fine-tuning phase.
                 </p>
                 <p>
-                    AIFS-CRPS splits this into <em>four</em> phases. Stage 1 is the same single-step pretrain. Stage 2 is a
+                    AIFS-CRPS splits this into <em>four</em> phases. Stage 1 is the same single-step pretrain. Stage 2
+                    is a
                     dedicated 2-step rollout phase with the learning rate reset, which the original
                     didn't have. Stage 3 grows the rollout window from 3 to 12 steps, but the learning rate is
-                    held constant through this phase. Stage 4 is the operational-analysis fine-tune. Furthermore, the amount of
+                    held constant through this phase. Stage 4 is the operational-analysis fine-tune. Furthermore, the
+                    amount of
                     data for the final stage has been increased from two years (2019–2020) to eight years (2016–2023).
                 </p>
 
@@ -1079,25 +1160,35 @@
                 <h2 id="CRPS">The Continuous Ranked Probability Score</h2>
 
                 <p>Now we are finally getting to the probabilistic part! As mentioned above, architecturally, the AIFS
-                    and AIFS-CRPS models are nearly identical. The big difference is the loss function. For the deterministic
-                    AIFS variant, the typical Mean Squared Error (MSE) loss was used. But the MSE only optimises for a point
+                    and AIFS-CRPS models are nearly identical. The big difference is the loss function. For the
+                    deterministic
+                    AIFS variant, the typical Mean Squared Error (MSE) loss was used. But the MSE only optimises for a
+                    point
                     prediction (getting the prediction as close to this reference value as possible).
                 </p>
 
-                <p>To move to probabilistic modelling, we usually do not look at the distance between two <em>points</em>
-                    but at the distance between two <em>distributions</em>. Typical keywords for a Bayesian modeller here
+                <p>To move to probabilistic modelling, we usually do not look at the distance between two
+                    <em>points</em>
+                    but at the distance between two <em>distributions</em>. Typical keywords for a Bayesian modeller
+                    here
                     are KL divergence, ELBO, variational inference, and all those fun topics. ML practitioners may have
-                    heard about the Wasserstein distance, which is used in GANs. Another distance metric, and the one that is used
-                    here, is the <em>energy distance</em>. Between two distributions $P$ and $Q$, it is defined as 
-                    $$D^2_\mathrm{Energy}(P, Q) = 2\,\mathbb{E}\|\mathbf{X} - \mathbf{Y}\| \;-\; \mathbb{E}\|\mathbf{X} - \mathbf{X}'\| \;-\; \mathbb{E}\|\mathbf{Y} - \mathbf{Y}'\|,$$
-                    where $\mathbf{X}$ and $\mathbf{X}'$ are independent random variables drawn from $P$, and $\mathbf{Y}$ and $\mathbf{Y}'$ are independent random
-                    variables drawn from $Q$. So if $P$ is the distribution of atmospheric states predicted by our probabilistic
-                    model, and $Q$ is the distribution of the true atmospheric state, then all we have to do is minimise this loss.
+                    heard about the Wasserstein distance, which is used in GANs. Another distance metric, and the one
+                    that is used
+                    here, is the <em>energy distance</em>. Between two distributions $P$ and $Q$, it is defined as
+                    $$D^2_\mathrm{Energy}(P, Q) = 2\,\mathbb{E}\|\mathbf{X} - \mathbf{Y}\| \;-\; \mathbb{E}\|\mathbf{X}
+                    - \mathbf{X}'\| \;-\; \mathbb{E}\|\mathbf{Y} - \mathbf{Y}'\|,$$
+                    where $\mathbf{X}$ and $\mathbf{X}'$ are independent random variables drawn from $P$, and
+                    $\mathbf{Y}$ and $\mathbf{Y}'$ are independent random
+                    variables drawn from $Q$. So if $P$ is the distribution of atmospheric states predicted by our
+                    probabilistic
+                    model, and $Q$ is the distribution of the true atmospheric state, then all we have to do is minimise
+                    this loss.
                 </p>
 
-                <p> But this comes with a slight problem: we don't know the real distribution of atmospheric states. 
-                    All we have is a single best-estimate value from the ERA5 dataset. So we have to use a small trick. 
-                    We simply say the distribution of the true state is a point mass at $\mathbf{y}$ — all of the probability sits
+                <p> But this comes with a slight problem: we don't know the real distribution of atmospheric states.
+                    All we have is a single best-estimate value from the ERA5 dataset. So we have to use a small trick.
+                    We simply say the distribution of the true state is a point mass at $\mathbf{y}$ — all of the
+                    probability sits
                     on the random variable $\mathbf{Y}$ being equal to $\mathbf{y}$, and nothing on anything else.
                     In physics and math, we call this the <em>Dirac delta distribution</em>
                     $\delta(\mathbf{y})$.
@@ -1105,96 +1196,134 @@
 
                 <p>If we assume $Q = \delta(\mathbf{y})$, then every sample of $\mathbf{Y}$ is just $\mathbf{y}$, so
                     $$\mathbb{E}\|\mathbf{Y} - \mathbf{Y}'\| = 0$$
-                     and
+                    and
                     $$\mathbb{E}\|\mathbf{X} - \mathbf{Y}\| = \mathbb{E}\|\mathbf{X} - \mathbf{y}\|.$$
                     The energy distance therefore simplifies to
-                    $$D^2_\mathrm{Energy}\big(P, \delta(\mathbf{y})\big) = 2\,\mathbb{E}\|\mathbf{X} - \mathbf{y}\| \;-\; \mathbb{E}\|\mathbf{X} - \mathbf{X}'\|.$$
-                    If we divide this expression by 2, we get the so-called <em>Continuous Ranked Probability Score</em> (CRPS),
-                    $$\mathrm{CRPS}(P, \mathbf{y}) = \mathbb{E}\|\mathbf{X} - \mathbf{y}\| \;-\; \tfrac{1}{2}\,\mathbb{E}\|\mathbf{X} - \mathbf{X}'\|.$$
+                    $$D^2_\mathrm{Energy}\big(P, \delta(\mathbf{y})\big) = 2\,\mathbb{E}\|\mathbf{X} - \mathbf{y}\|
+                    \;-\; \mathbb{E}\|\mathbf{X} - \mathbf{X}'\|.$$
+                    If we divide this expression by 2, we get the so-called <em>Continuous Ranked Probability Score</em>
+                    (CRPS),
+                    $$\mathrm{CRPS}(P, \mathbf{y}) = \mathbb{E}\|\mathbf{X} - \mathbf{y}\| \;-\;
+                    \tfrac{1}{2}\,\mathbb{E}\|\mathbf{X} - \mathbf{X}'\|.$$
                 </p>
 
-                <p>The CRPS is our new loss function, and a so-called <em>proper scoring rule</em>. A scoring rule $S(P, \mathbf{y})$
-                    takes a predicted distribution $P$ and an observation $\mathbf{y}$, and returns a number; lower is (usually) better.
-                    It's proper if, on average, the lowest score is achieved by predicting the true distribution. That is, if
+                <p>The CRPS is our new loss function, and a so-called <em>proper scoring rule</em>. A scoring rule $S(P,
+                    \mathbf{y})$
+                    takes a predicted distribution $P$ and an observation $\mathbf{y}$, and returns a number; lower is
+                    (usually) better.
+                    It's proper if, on average, the lowest score is achieved by predicting the true distribution. That
+                    is, if
                     the data really comes from some distribution $Q$, then
                 </p>
-                <p>$$ \mathbb{E}_{\mathbf{y} \sim Q}\,[S(Q, \mathbf{y})] \;\le\; \mathbb{E}_{\mathbf{y} \sim Q}\,[S(P, \mathbf{y})] \quad \text{for any } P. $$</p>
+                <p>$$ \mathbb{E}_{\mathbf{y} \sim Q}\,[S(Q, \mathbf{y})] \;\le\; \mathbb{E}_{\mathbf{y} \sim Q}\,[S(P,
+                    \mathbf{y})] \quad \text{for any } P. $$</p>
 
-                <p>Now, if our model predicts $M$ ensemble members $\{x_j\}_{j=1}^M$ for a single processor grid point $x$, we can estimate the CRPS as</p>
+                <p>Now, if our model predicts $M$ ensemble members $\{x_j\}_{j=1}^M$ for a single processor grid point
+                    $x$, we can estimate the CRPS as</p>
 
-                <p>$$ \mathrm{CRPS}\big(\{x_j\}_{j=1}^M, y\big) \;=\; \underbrace{\frac{1}{M}\sum_{j=1}^M |x_j - y|}_{\text{average distance to the observation}} \;-\; \underbrace{\frac{1}{2 M^2}\sum_{j=1}^M\sum_{k=1}^M |x_j - x_k|}_{\text{inter-ensemble spread}}. $$</p>
+                <p>$$ \mathrm{CRPS}\big(\{x_j\}_{j=1}^M, y\big) \;=\; \underbrace{\frac{1}{M}\sum_{j=1}^M |x_j -
+                    y|}_{\text{average distance to the observation}} \;-\; \underbrace{\frac{1}{2
+                    M^2}\sum_{j=1}^M\sum_{k=1}^M |x_j - x_k|}_{\text{inter-ensemble spread}}. $$</p>
 
-                <p>This is a nicely interpretable expression. The first term is the average absolute error of the ensemble
-                    members against the observation — basically the Mean Absolute Error (MAE). The model tries to minimise
+                <p>This is a nicely interpretable expression. The first term is the average absolute error of the
+                    ensemble
+                    members against the observation — basically the Mean Absolute Error (MAE). The model tries to
+                    minimise
                     this term. The second term, on the other hand, is half the average pairwise distance
                     between ensemble members. This term contributes <em>negatively</em> to the loss, meaning the
                     model tries to keep this average distance as large as possible. Both terms play against one
                     another, with the optimum sitting where the two terms balance out, which is exactly when the
                     ensemble spread matches the true forecast uncertainty.
                 </p>
-                
-                <p>The CRPS expression replaces the MSE in the loss function for a single processor grid point $x$, calculated over all ensemble members
-                   $\{x_j\}_{j=1}^M$. Just like in the first paper, the total loss is an area-weighted mean over all grid points. The individual variables
-                   are scaled in the same way as in the AIFS paper, so that they contribute roughly equally to the loss. Additionally, the 
-                   pressure-dependent weighting is used to decrease the effect of upper-air variables (with the optional weight floor discussed 
-                   above).
+
+                <p>The CRPS expression replaces the MSE in the loss function for a single processor grid point $x$,
+                    calculated over all ensemble members
+                    $\{x_j\}_{j=1}^M$. Just like in the first paper, the total loss is an area-weighted mean over all
+                    grid points. The individual variables
+                    are scaled in the same way as in the AIFS paper, so that they contribute roughly equally to the
+                    loss. Additionally, the
+                    pressure-dependent weighting is used to decrease the effect of upper-air variables (with the
+                    optional weight floor discussed
+                    above).
 
                 </p>
 
-                <p>It is not surprising that the CRPS is used for ML-based weather prediction. The score itself originates in meteorology,
-                    where it is commonly used to assess the quality of (classical, physics-based) ensemble forecasts. So using
+                <p>It is not surprising that the CRPS is used for ML-based weather prediction. The score itself
+                    originates in meteorology,
+                    where it is commonly used to assess the quality of (classical, physics-based) ensemble forecasts. So
+                    using
                     it as a loss for a probabilistic forecasting model is quite natural.</p>
 
                 <h3 id="Almost-Fair">The Almost-Fair CRPS</h3>
 
                 <p>There is a small subtlety in the second term of the estimator above. If $j = k$, the pairwise sum
-                    always evaluates to zero. This means we are effectively losing one degree of freedom in the estimator,
-                    which makes the above expression biased. <a href="https://doi.org/10.1002/qj.2270">Ferro (2013)</a> showed that
-                    this bias is corrected by switching the denominator from $\frac{1}{2M^2}$ to $\frac{1}{2M(M-1)}$, leading to the <em>fair CRPS</em>:</p>
+                    always evaluates to zero. This means we are effectively losing one degree of freedom in the
+                    estimator,
+                    which makes the above expression biased. <a href="https://doi.org/10.1002/qj.2270">Ferro (2013)</a>
+                    showed that
+                    this bias is corrected by switching the denominator from $\frac{1}{2M^2}$ to $\frac{1}{2M(M-1)}$,
+                    leading to the <em>fair CRPS</em>:</p>
 
-                <p>$$ \mathrm{fCRPS}\big(\{x_j\}, y\big) \;=\; \frac{1}{M}\sum_{j=1}^M |x_j - y| \;-\; \frac{1}{2 M(M-1)}\sum_{j=1}^M\sum_{k=1}^M |x_j - x_k|. $$</p>
+                <p>$$ \mathrm{fCRPS}\big(\{x_j\}, y\big) \;=\; \frac{1}{M}\sum_{j=1}^M |x_j - y| \;-\; \frac{1}{2
+                    M(M-1)}\sum_{j=1}^M\sum_{k=1}^M |x_j - x_k|. $$</p>
 
-                <p>The fCRPS is unbiased in expectation at any ensemble size $M$. However, in the case when all $x_j = y$
+                <p>The fCRPS is unbiased in expectation at any ensemble size $M$. However, in the case when all $x_j =
+                    y$
                     except for one, $x_l$, the fair CRPS simplifies to
-                    $$ \mathrm{fCRPS}\big(\{x_j\}, y\big) \;=\; \frac{1}{M} |x_l - y| \;-\; \frac{2 (M-1)}{2 M(M-1)} |x_l - y| \;=\; 0, $$
-                    and therefore becomes independent of the model predictions. Neural networks love to cheat if they can, so the authors
-                    anticipate this would become a problem at some point. The paper's solution is to introduce a composite score, which
+                    $$ \mathrm{fCRPS}\big(\{x_j\}, y\big) \;=\; \frac{1}{M} |x_l - y| \;-\; \frac{2 (M-1)}{2 M(M-1)}
+                    |x_l - y| \;=\; 0, $$
+                    and therefore becomes independent of the model predictions. Neural networks love to cheat if they
+                    can, so the authors
+                    anticipate this would become a problem at some point. The paper's solution is to introduce a
+                    composite score, which
                     they call the <em>almost-fair</em> CRPS, given by
                     $$ \mathrm{afCRPS}_\alpha \;:=\; \alpha\,\mathrm{fCRPS} + (1-\alpha)\,\mathrm{CRPS}, $$
                     with $\alpha = 0.95$. Rearranged for numerical stability, it reads
-                    $$ \mathrm{afCRPS}_\alpha \;=\; \frac{1}{2 M(M-1)} \sum_{j=1}^M \sum_{\substack{k=1 \\ k \ne j}}^M \Big(|x_j - y| + |x_k - y| - (1-\epsilon)|x_j - x_k|\Big), $$
+                    $$ \mathrm{afCRPS}_\alpha \;=\; \frac{1}{2 M(M-1)} \sum_{j=1}^M \sum_{\substack{k=1 \\ k \ne j}}^M
+                    \Big(|x_j - y| + |x_k - y| - (1-\epsilon)|x_j - x_k|\Big), $$
                     with $\epsilon = (1-\alpha)/M$.
                 </p>
 
                 <h2 id="Stochastic-Model">Making The Model Stochastic</h2>
 
-                <p>Besides the changes mentioned above, the model architecture is essentially the same encoder-processor-decoder 
-                  setup from the first paper. The only architectural addition to make the model stochastic is adding a noise input to the 
-                  processor blocks, so that for a fixed input state the model can produce a distribution of forecasts conditioned on input 
-                  noise.
+                <p>Besides the changes mentioned above, the model architecture is essentially the same
+                    encoder-processor-decoder
+                    setup from the first paper. The only architectural addition to make the model stochastic is adding a
+                    noise input to the
+                    processor blocks, so that for a fixed input state the model can produce a distribution of forecasts
+                    conditioned on input
+                    noise.
                 </p>
 
-                <p>For each ensemble member, and at each forecast step, a random noise vector is drawn from a standard Gaussian
-                    $\boldsymbol{\xi} \sim \mathcal{N}(0, \mathbf{I})$. It is passed through a small two-layer MLP followed by a 
+                <p>For each ensemble member, and at each forecast step, a random noise vector is drawn from a standard
+                    Gaussian
+                    $\boldsymbol{\xi} \sim \mathcal{N}(0, \mathbf{I})$. It is passed through a small two-layer MLP
+                    followed by a
                     layer normalisation (LN) to produce a noise embedding,
                     $$\nu = \mathrm{LN}\big(\mathrm{MLP}(\boldsymbol{\xi})\big),$$
-                    which is then used to condition the forward pass using <em>Conditional Layer Normalisation</em> (CLN).
+                    which is then used to condition the forward pass using <em>Conditional Layer Normalisation</em>
+                    (CLN).
                 </p>
 
 
-                <p>In a standard LN, a grid point $x$ gets normalised $x^\prime = \frac{x - \mu}{\sigma}$, where $\mu$ and $\sigma$ are calculated
-                   across the hidden dimension, and passed through a learned affine transformation, 
-                   $$\mathrm{LN}(x) = \gamma \odot x^\prime + \beta,$$ 
-                   where $\gamma, \beta \in \mathbb{R}^{d}$ are per-layer learnable parameters, with $d$ being the size of the hidden dimension.
-                   In standard LN, these parameters are fixed after training and applied to inputs indiscriminately.
+                <p>In a standard LN, a grid point $x$ gets normalised $x^\prime = \frac{x - \mu}{\sigma}$, where $\mu$
+                    and $\sigma$ are calculated
+                    across the hidden dimension, and passed through a learned affine transformation,
+                    $$\mathrm{LN}(x) = \gamma \odot x^\prime + \beta,$$
+                    where $\gamma, \beta \in \mathbb{R}^{d}$ are per-layer learnable parameters, with $d$ being the size
+                    of the hidden dimension.
+                    In standard LN, these parameters are fixed after training and applied to inputs indiscriminately.
                 </p>
 
                 <p>For conditional layer normalisation, we replace the two LN layers in the transformer by CLN
-                    layers. We use the noise embedding to calculate the noise-dependent transformation parameters $\gamma$ and $\beta$ using
-                    $$\gamma(\boldsymbol{\xi}) = W_\gamma\,\nu(\boldsymbol{\xi}) + b_\gamma, \qquad \beta(\boldsymbol{\xi}) = W_\beta\,\nu(\boldsymbol{\xi}) + b_\beta,$$
-                    where $W_\gamma, b_\gamma, W_\beta, b_\beta$ are per-layer learnable parameters. In this way, the same input state can induce differing
+                    layers. We use the noise embedding to calculate the noise-dependent transformation parameters
+                    $\gamma$ and $\beta$ using
+                    $$\gamma(\boldsymbol{\xi}) = W_\gamma\,\nu(\boldsymbol{\xi}) + b_\gamma, \qquad
+                    \beta(\boldsymbol{\xi}) = W_\beta\,\nu(\boldsymbol{\xi}) + b_\beta,$$
+                    where $W_\gamma, b_\gamma, W_\beta, b_\beta$ are per-layer learnable parameters. In this way, the
+                    same input state can induce differing
                     post-norm activations and ultimately output states, based on the input noise.
-                 </p>
+                </p>
 
                 <div class="demo reveal">
                     <div class="demo-head">
@@ -1210,7 +1339,8 @@
                         <div class="clnorm-info" id="clnInfo"></div>
                     </div>
                     <div class="demo-foot">Click on any block to see what it does. The only architectural change
-                        relative to <a href="2026-05-20-aifs_blog_post.html#Processor">the processor block from post 1</a>
+                        relative to <a href="2026-05-20-aifs_blog_post.html#Processor">the processor block from post
+                            1</a>
                         is that the two pre-norm LayerNorms become <em>conditional</em>, with their scale and shift
                         parameters driven by the per-member noise sample.</div>
                 </div>
@@ -1220,17 +1350,22 @@
                 <p>The model training follows the four-stage curriculum laid out above.</p>
 
                 <p>For each forecast step, we start with the <em>same</em> ERA5 initial state $\mathbf{x}_t$.
-                   For every ensemble member, a unique noise sample $\boldsymbol{\xi}$ is drawn, and a forecast produced.
-                   The $M$ forecasts are then scored <em>jointly</em> under the afCRPS. For rollout training, each state
-                   is initialised with a fresh noise sample.        
+                    For every ensemble member, a unique noise sample $\boldsymbol{\xi}$ is drawn, and a forecast
+                    produced.
+                    The $M$ forecasts are then scored <em>jointly</em> under the afCRPS. For rollout training, each
+                    state
+                    is initialised with a fresh noise sample.
                 </p>
 
-                <p>Similarly to the deterministic version, the training is distributed via data and tensor sharding. In addition,
-                   <em>ensemble parallelism</em> is used. Each ensemble member runs its own copy of the model on its own set of
-                   GPUs. After the forward pass, a differentiable all-gather collects the per-member forecasts onto every device,
-                   so the loss and gradients can be calculated.
+                <p>Similarly to the deterministic version, the training is distributed via data and tensor sharding. In
+                    addition,
+                    <em>ensemble parallelism</em> is used. Each ensemble member runs its own copy of the model on its
+                    own set of
+                    GPUs. After the forward pass, a differentiable all-gather collects the per-member forecasts onto
+                    every device,
+                    so the loss and gradients can be calculated.
                 </p>
-                    
+
                 <p>The paper trains two different versions of the model:</p>
 
                 <ul>
@@ -1238,7 +1373,7 @@
                         $M = 4$, with the linear pressure weighting and its 0.2 floor. Trained for about 4 days on
                         64 H100 GPUs.</li>
                     <li><strong>AIFS-CRPS N320</strong> (~0.25°, ERA5's native resolution): N320 input grid, O96
-                        processor grid, ensemble size $M = 2$, no minimum-pressure floor. Trained for about 7 days on 
+                        processor grid, ensemble size $M = 2$, no minimum-pressure floor. Trained for about 7 days on
                         128 H100 GPUs.</li>
                 </ul>
 
@@ -1253,9 +1388,12 @@
                         <div class="ens-flow" id="ensFlow"></div>
                         <div class="ens-caption" id="ensCap">
                             <span class="ttl">click any block to inspect</span>
-                            All $M$ ensemble members start from the same initial state $\mathbf{x}_t$, each with their own
-                            noise sample $\boldsymbol{\xi}$. The members are propagated forward by $M$ separate model instances
-                            with shared $\theta$, producing $M$ different forecasts. They are gathered and scored jointly
+                            All $M$ ensemble members start from the same initial state $\mathbf{x}_t$, each with their
+                            own
+                            noise sample $\boldsymbol{\xi}$. The members are propagated forward by $M$ separate model
+                            instances
+                            with shared $\theta$, producing $M$ different forecasts. They are gathered and scored
+                            jointly
                             with the afCRPS loss against a single deterministic ERA5 target $\mathbf{y}$.
                         </div>
                     </div>
@@ -1263,37 +1401,45 @@
                 </div>
 
                 <h2 id="Inference">Inference And Operational Use</h2>
-                
-                <p>At inference time, the individual ensemble members are basically fully independent, so that one 
-                   can draw as many as desired. ECMWF has made the ensemble model operational
-                   <a href="https://www.ecmwf.int/en/newsletter/185/earth-system-science/aifs-ens-becomes-operational">
-                    last year</a> as <em>AIFS ENS</em> (separate from the <em>AIFS Single</em> deterministic model).
+
+                <p>At inference time, the individual ensemble members are basically fully independent, so that one
+                    can draw as many as desired. ECMWF has made the ensemble model operational
+                    <a href="https://www.ecmwf.int/en/newsletter/185/earth-system-science/aifs-ens-becomes-operational">
+                        last year</a> as <em>AIFS ENS</em> (separate from the <em>AIFS Single</em> deterministic model).
                     The operational model includes 50 ensemble members plus a control run.
                 </p>
-                
+
                 <p>Importantly, one change is made from the training procedure: In training, every member starts
                     from the same ERA5 state, so all of the ensemble spread is generated internally, by the noise
-                    channel. In operation, the initial states for AIFS ENS are the same initial states that are 
+                    channel. In operation, the initial states for AIFS ENS are the same initial states that are
                     used for the physics-based IFS ensemble. These initial conditions are themselves perturbed using
-                    singular-vector perturbations. The operational forecast therefore carries two sources of 
-                    uncertainty: initial-condition uncertainty from the perturbed states, and forecast-model 
+                    singular-vector perturbations. The operational forecast therefore carries two sources of
+                    uncertainty: initial-condition uncertainty from the perturbed states, and forecast-model
                     uncertainty from the noise. Since these perturbations are specifically tuned
                     to improve the forecast skill of the IFS model, they appear to degrade the performance of the
                     AIFS ENS system slightly. ECMWF flags this as an area for future improvements.
                 </p>
 
-                <p> While the authors argue there is still lots of room for improvement and experimentation, it is pretty
-                    amazing how fast they were able to build an ML-based operational system that can compete with established
-                    physics-based methods, all while being much cheaper and faster to run. In the paper, they especially flag
-                    the good performance of the model over longer time horizons as a promising avenue for further research.
+                <p> While the authors argue there is still lots of room for improvement and experimentation, it is
+                    pretty
+                    amazing how fast they were able to build an ML-based operational system that can compete with
+                    established
+                    physics-based methods, all while being much cheaper and faster to run. In the paper, they especially
+                    flag
+                    the good performance of the model over longer time horizons as a promising avenue for further
+                    research.
 
                 </p>
 
-                <p>There have already been some follow-up papers on this work: <a href="https://arxiv.org/abs/2509.18994">AIFS 1.1</a>, which introduces
-                    additional variables; a <a href="https://arxiv.org/abs/2506.10868">preprint</a> that modifies the CRPS loss to
+                <p>There have already been some follow-up papers on this work: <a
+                        href="https://arxiv.org/abs/2509.18994">AIFS 1.1</a>, which introduces
+                    additional variables; a <a href="https://arxiv.org/abs/2506.10868">preprint</a> that modifies the
+                    CRPS loss to
                     explicitly include multi-scale spatial features; and the updated
-                     <a href="https://www.ecmwf.int/en/about/media-centre/news/2026/ifs-cycle-50r1-aifsv2-live">AIFS v2</a>. So there is still a bunch
-                     of things we can dig into in the future.
+                    <a href="https://www.ecmwf.int/en/about/media-centre/news/2026/ifs-cycle-50r1-aifsv2-live">AIFS
+                        v2</a>. There has also been recent
+                    work on <a href="https://arxiv.org/abs/2603.05570">combining</a> ECMWF's ML-based and
+                    physics-based models. So there is still a bunch of things we can dig into in the future.
                 </p>
 
                 <details class="refs">
@@ -1375,166 +1521,166 @@
 
             if (crpsSvg && muSlider && sgSlider) {
 
-            const M = 11;                          // forecast ensemble size
-            const SIG_TRUE = 1.5;                  // truth distribution width
-            const N_OBS = 41;                      // observation samples for expectation
-            const XMIN = -5, XMAX = 5;
-            const W = 640, H = 260;
-            const PAD_L = 36, PAD_R = 24, AXY = 200;
-            const PLOT_W = W - PAD_L - PAD_R;
+                const M = 11;                          // forecast ensemble size
+                const SIG_TRUE = 1.5;                  // truth distribution width
+                const N_OBS = 41;                      // observation samples for expectation
+                const XMIN = -5, XMAX = 5;
+                const W = 640, H = 260;
+                const PAD_L = 36, PAD_R = 24, AXY = 200;
+                const PLOT_W = W - PAD_L - PAD_R;
 
-            // inverse standard normal CDF (Beasley-Springer-Moro approximation)
-            function probit(p) {
-                const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
-                const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
-                const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
-                const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
-                const pl = 0.02425, ph = 1 - pl;
-                let q, r;
-                if (p < pl) {
-                    q = Math.sqrt(-2 * Math.log(p));
-                    return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
-                        ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
-                } else if (p <= ph) {
-                    q = p - 0.5; r = q * q;
-                    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
-                        (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
-                } else {
-                    q = Math.sqrt(-2 * Math.log(1 - p));
-                    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
-                        ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+                // inverse standard normal CDF (Beasley-Springer-Moro approximation)
+                function probit(p) {
+                    const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+                    const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+                    const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+                    const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+                    const pl = 0.02425, ph = 1 - pl;
+                    let q, r;
+                    if (p < pl) {
+                        q = Math.sqrt(-2 * Math.log(p));
+                        return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+                            ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+                    } else if (p <= ph) {
+                        q = p - 0.5; r = q * q;
+                        return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q /
+                            (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+                    } else {
+                        q = Math.sqrt(-2 * Math.log(1 - p));
+                        return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) /
+                            ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1);
+                    }
                 }
-            }
 
-            // fixed quantiles for the forecast ensemble (returns M values in z-space)
-            const Z_FORECAST = [];
-            for (let j = 0; j < M; j++) Z_FORECAST.push(probit((j + 0.5) / M));
-            // fixed quantiles for the observation expectation
-            const Z_OBS = [];
-            for (let i = 0; i < N_OBS; i++) Z_OBS.push(probit((i + 0.5) / N_OBS));
+                // fixed quantiles for the forecast ensemble (returns M values in z-space)
+                const Z_FORECAST = [];
+                for (let j = 0; j < M; j++) Z_FORECAST.push(probit((j + 0.5) / M));
+                // fixed quantiles for the observation expectation
+                const Z_OBS = [];
+                for (let i = 0; i < N_OBS; i++) Z_OBS.push(probit((i + 0.5) / N_OBS));
 
-            // map x in [XMIN, XMAX] to pixel x
-            function xPix(x) { return PAD_L + (x - XMIN) / (XMAX - XMIN) * PLOT_W; }
-            // gaussian pdf
-            function pdf(x, mu, sg) { return Math.exp(-0.5 * (x - mu) * (x - mu) / (sg * sg)) / (sg * Math.sqrt(2 * Math.PI)); }
+                // map x in [XMIN, XMAX] to pixel x
+                function xPix(x) { return PAD_L + (x - XMIN) / (XMAX - XMIN) * PLOT_W; }
+                // gaussian pdf
+                function pdf(x, mu, sg) { return Math.exp(-0.5 * (x - mu) * (x - mu) / (sg * sg)) / (sg * Math.sqrt(2 * Math.PI)); }
 
-            function computeScores(mu, sg) {
-                // forecast samples
-                const xs = Z_FORECAST.map(z => mu + sg * z);
-                // observations drawn from N(0, SIG_TRUE^2)
-                const ys = Z_OBS.map(z => SIG_TRUE * z);
+                function computeScores(mu, sg) {
+                    // forecast samples
+                    const xs = Z_FORECAST.map(z => mu + sg * z);
+                    // observations drawn from N(0, SIG_TRUE^2)
+                    const ys = Z_OBS.map(z => SIG_TRUE * z);
 
-                // expected MAE term: average over observations of (1/M) sum_j |x_j - y|
-                let mae = 0, mse = 0;
-                for (const y of ys) {
-                    let acc = 0, acc2 = 0;
-                    for (const x of xs) { acc += Math.abs(x - y); acc2 += (x - y) * (x - y); }
-                    mae += acc / M;
-                    mse += acc2 / M;
+                    // expected MAE term: average over observations of (1/M) sum_j |x_j - y|
+                    let mae = 0, mse = 0;
+                    for (const y of ys) {
+                        let acc = 0, acc2 = 0;
+                        for (const x of xs) { acc += Math.abs(x - y); acc2 += (x - y) * (x - y); }
+                        mae += acc / M;
+                        mse += acc2 / M;
+                    }
+                    mae /= ys.length;
+                    mse /= ys.length;
+
+                    // spread term (1/(2M^2)) sum_jk |x_j - x_k|, observation-independent
+                    let spr = 0;
+                    for (let j = 0; j < M; j++) for (let k = 0; k < M; k++) spr += Math.abs(xs[j] - xs[k]);
+                    spr /= (2 * M * M);
+
+                    return { xs, ys, mae, spread: spr, crps: mae - spr, mse };
                 }
-                mae /= ys.length;
-                mse /= ys.length;
 
-                // spread term (1/(2M^2)) sum_jk |x_j - x_k|, observation-independent
-                let spr = 0;
-                for (let j = 0; j < M; j++) for (let k = 0; k < M; k++) spr += Math.abs(xs[j] - xs[k]);
-                spr /= (2 * M * M);
+                function renderCRPS(mu, sg) {
+                    const { xs, mae, spread, crps, mse } = computeScores(mu, sg);
 
-                return { xs, ys, mae, spread: spr, crps: mae - spr, mse };
-            }
+                    // background
+                    let svg = `<rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff"/>`;
 
-            function renderCRPS(mu, sg) {
-                const { xs, mae, spread, crps, mse } = computeScores(mu, sg);
+                    // truth pdf curve
+                    const N_CURVE = 200;
+                    let path = '';
+                    let pdfMax = 0;
+                    for (let i = 0; i <= N_CURVE; i++) {
+                        const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
+                        const v = pdf(x, 0, SIG_TRUE);
+                        if (v > pdfMax) pdfMax = v;
+                    }
+                    const PDF_H = 80;
+                    for (let i = 0; i <= N_CURVE; i++) {
+                        const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
+                        const v = pdf(x, 0, SIG_TRUE);
+                        const px = xPix(x), py = AXY - (v / pdfMax) * PDF_H;
+                        path += (i === 0 ? `M ${px.toFixed(1)} ${py.toFixed(1)}` : ` L ${px.toFixed(1)} ${py.toFixed(1)}`);
+                    }
+                    svg += `<path d="${path} L ${xPix(XMAX)} ${AXY} L ${xPix(XMIN)} ${AXY} Z" fill="${COLOR.cool}" opacity="0.08"/>`;
+                    svg += `<path d="${path}" stroke="${COLOR.cool}" stroke-width="1.4" fill="none" opacity="0.6"/>`;
+                    svg += `<text x="${xPix(SIG_TRUE + 0.4).toFixed(1)}" y="${(AXY - PDF_H * 0.55).toFixed(1)}" font-family="Fira Code" font-size="11" fill="${COLOR.cool}" opacity="0.85">truth · N(0, 1.5²)</text>`;
 
-                // background
-                let svg = `<rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff"/>`;
+                    // forecast pdf curve
+                    let path2 = '';
+                    let pdf2Max = 0;
+                    for (let i = 0; i <= N_CURVE; i++) {
+                        const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
+                        const v = pdf(x, mu, sg);
+                        if (v > pdf2Max) pdf2Max = v;
+                    }
+                    const PDF2_H = 80;
+                    for (let i = 0; i <= N_CURVE; i++) {
+                        const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
+                        const v = pdf(x, mu, sg);
+                        const px = xPix(x), py = AXY - (v / pdf2Max) * PDF2_H;
+                        path2 += (i === 0 ? `M ${px.toFixed(1)} ${py.toFixed(1)}` : ` L ${px.toFixed(1)} ${py.toFixed(1)}`);
+                    }
+                    svg += `<path d="${path2}" stroke="${COLOR.warm}" stroke-width="1.8" fill="none" opacity="0.55" stroke-dasharray="4 3"/>`;
 
-                // truth pdf curve
-                const N_CURVE = 200;
-                let path = '';
-                let pdfMax = 0;
-                for (let i = 0; i <= N_CURVE; i++) {
-                    const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
-                    const v = pdf(x, 0, SIG_TRUE);
-                    if (v > pdfMax) pdfMax = v;
+                    // x axis
+                    svg += `<line x1="${PAD_L}" y1="${AXY}" x2="${W - PAD_R}" y2="${AXY}" stroke="rgba(15,23,42,0.45)"/>`;
+                    for (let t = XMIN; t <= XMAX; t += 1) {
+                        const tx = xPix(t);
+                        svg += `<line x1="${tx}" y1="${AXY}" x2="${tx}" y2="${AXY + 4}" stroke="rgba(15,23,42,0.45)"/>`;
+                        svg += `<text x="${tx}" y="${AXY + 16}" text-anchor="middle" font-family="Fira Code" font-size="10" fill="${COLOR.soft}">${t}</text>`;
+                    }
+                    svg += `<text x="${W - PAD_R}" y="${AXY + 32}" text-anchor="end" font-family="Fira Code" font-size="10" fill="${COLOR.muted}">forecast / observation value</text>`;
+
+                    // ensemble member dots
+                    xs.forEach((x, j) => {
+                        const cx = xPix(x);
+                        svg += `<line x1="${cx.toFixed(1)}" y1="${AXY - 12}" x2="${cx.toFixed(1)}" y2="${AXY + 12}" stroke="${COLOR.warm}" stroke-width="2" opacity="0.85"/>`;
+                    });
+                    svg += `<text x="${xPix(mu).toFixed(1)}" y="${(AXY + 50).toFixed(1)}" text-anchor="middle" font-family="Fira Code" font-size="11" fill="${COLOR.warm}" font-weight="600">forecast ensemble · M = ${M}</text>`;
+
+                    // mean indicator
+                    const cxm = xPix(mu);
+                    svg += `<line x1="${cxm.toFixed(1)}" y1="${(AXY - 28).toFixed(1)}" x2="${cxm.toFixed(1)}" y2="${(AXY - 8).toFixed(1)}" stroke="${COLOR.warm}" stroke-width="1" opacity="0.5" stroke-dasharray="2 2"/>`;
+                    svg += `<text x="${cxm.toFixed(1)}" y="${(AXY - 32).toFixed(1)}" text-anchor="middle" font-family="Fira Code" font-size="10" fill="${COLOR.warm}" opacity="0.85">μ</text>`;
+
+                    // truth zero indicator
+                    const cx0 = xPix(0);
+                    svg += `<line x1="${cx0.toFixed(1)}" y1="${(AXY - PDF_H - 6).toFixed(1)}" x2="${cx0.toFixed(1)}" y2="${(AXY - 8).toFixed(1)}" stroke="${COLOR.cool}" stroke-width="1" opacity="0.5" stroke-dasharray="2 2"/>`;
+
+                    crpsSvg.innerHTML = svg;
+
+                    // readouts
+                    muLab.textContent = mu.toFixed(2);
+                    sgLab.textContent = sg.toFixed(2);
+                    crpsOut.textContent = `CRPS = ${crps.toFixed(3)}`;
+                    maeOut.textContent = mae.toFixed(3);
+                    sprOut.textContent = `−${spread.toFixed(3)}`;
+                    mseOut.textContent = mse.toFixed(3);
                 }
-                const PDF_H = 80;
-                for (let i = 0; i <= N_CURVE; i++) {
-                    const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
-                    const v = pdf(x, 0, SIG_TRUE);
-                    const px = xPix(x), py = AXY - (v / pdfMax) * PDF_H;
-                    path += (i === 0 ? `M ${px.toFixed(1)} ${py.toFixed(1)}` : ` L ${px.toFixed(1)} ${py.toFixed(1)}`);
-                }
-                svg += `<path d="${path} L ${xPix(XMAX)} ${AXY} L ${xPix(XMIN)} ${AXY} Z" fill="${COLOR.cool}" opacity="0.08"/>`;
-                svg += `<path d="${path}" stroke="${COLOR.cool}" stroke-width="1.4" fill="none" opacity="0.6"/>`;
-                svg += `<text x="${xPix(SIG_TRUE + 0.4).toFixed(1)}" y="${(AXY - PDF_H * 0.55).toFixed(1)}" font-family="Fira Code" font-size="11" fill="${COLOR.cool}" opacity="0.85">truth · N(0, 1.5²)</text>`;
 
-                // forecast pdf curve
-                let path2 = '';
-                let pdf2Max = 0;
-                for (let i = 0; i <= N_CURVE; i++) {
-                    const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
-                    const v = pdf(x, mu, sg);
-                    if (v > pdf2Max) pdf2Max = v;
+                function updateFromSliders() {
+                    renderCRPS(parseFloat(muSlider.value), parseFloat(sgSlider.value));
                 }
-                const PDF2_H = 80;
-                for (let i = 0; i <= N_CURVE; i++) {
-                    const x = XMIN + (XMAX - XMIN) * i / N_CURVE;
-                    const v = pdf(x, mu, sg);
-                    const px = xPix(x), py = AXY - (v / pdf2Max) * PDF2_H;
-                    path2 += (i === 0 ? `M ${px.toFixed(1)} ${py.toFixed(1)}` : ` L ${px.toFixed(1)} ${py.toFixed(1)}`);
-                }
-                svg += `<path d="${path2}" stroke="${COLOR.warm}" stroke-width="1.8" fill="none" opacity="0.55" stroke-dasharray="4 3"/>`;
-
-                // x axis
-                svg += `<line x1="${PAD_L}" y1="${AXY}" x2="${W - PAD_R}" y2="${AXY}" stroke="rgba(15,23,42,0.45)"/>`;
-                for (let t = XMIN; t <= XMAX; t += 1) {
-                    const tx = xPix(t);
-                    svg += `<line x1="${tx}" y1="${AXY}" x2="${tx}" y2="${AXY + 4}" stroke="rgba(15,23,42,0.45)"/>`;
-                    svg += `<text x="${tx}" y="${AXY + 16}" text-anchor="middle" font-family="Fira Code" font-size="10" fill="${COLOR.soft}">${t}</text>`;
-                }
-                svg += `<text x="${W - PAD_R}" y="${AXY + 32}" text-anchor="end" font-family="Fira Code" font-size="10" fill="${COLOR.muted}">forecast / observation value</text>`;
-
-                // ensemble member dots
-                xs.forEach((x, j) => {
-                    const cx = xPix(x);
-                    svg += `<line x1="${cx.toFixed(1)}" y1="${AXY - 12}" x2="${cx.toFixed(1)}" y2="${AXY + 12}" stroke="${COLOR.warm}" stroke-width="2" opacity="0.85"/>`;
+                muSlider.addEventListener('input', updateFromSliders);
+                sgSlider.addEventListener('input', updateFromSliders);
+                document.querySelectorAll('.crps-preset button').forEach(b => {
+                    b.addEventListener('click', () => {
+                        muSlider.value = b.dataset.mu;
+                        sgSlider.value = b.dataset.sg;
+                        updateFromSliders();
+                    });
                 });
-                svg += `<text x="${xPix(mu).toFixed(1)}" y="${(AXY + 50).toFixed(1)}" text-anchor="middle" font-family="Fira Code" font-size="11" fill="${COLOR.warm}" font-weight="600">forecast ensemble · M = ${M}</text>`;
-
-                // mean indicator
-                const cxm = xPix(mu);
-                svg += `<line x1="${cxm.toFixed(1)}" y1="${(AXY - 28).toFixed(1)}" x2="${cxm.toFixed(1)}" y2="${(AXY - 8).toFixed(1)}" stroke="${COLOR.warm}" stroke-width="1" opacity="0.5" stroke-dasharray="2 2"/>`;
-                svg += `<text x="${cxm.toFixed(1)}" y="${(AXY - 32).toFixed(1)}" text-anchor="middle" font-family="Fira Code" font-size="10" fill="${COLOR.warm}" opacity="0.85">μ</text>`;
-
-                // truth zero indicator
-                const cx0 = xPix(0);
-                svg += `<line x1="${cx0.toFixed(1)}" y1="${(AXY - PDF_H - 6).toFixed(1)}" x2="${cx0.toFixed(1)}" y2="${(AXY - 8).toFixed(1)}" stroke="${COLOR.cool}" stroke-width="1" opacity="0.5" stroke-dasharray="2 2"/>`;
-
-                crpsSvg.innerHTML = svg;
-
-                // readouts
-                muLab.textContent = mu.toFixed(2);
-                sgLab.textContent = sg.toFixed(2);
-                crpsOut.textContent = `CRPS = ${crps.toFixed(3)}`;
-                maeOut.textContent = mae.toFixed(3);
-                sprOut.textContent = `−${spread.toFixed(3)}`;
-                mseOut.textContent = mse.toFixed(3);
-            }
-
-            function updateFromSliders() {
-                renderCRPS(parseFloat(muSlider.value), parseFloat(sgSlider.value));
-            }
-            muSlider.addEventListener('input', updateFromSliders);
-            sgSlider.addEventListener('input', updateFromSliders);
-            document.querySelectorAll('.crps-preset button').forEach(b => {
-                b.addEventListener('click', () => {
-                    muSlider.value = b.dataset.mu;
-                    sgSlider.value = b.dataset.sg;
-                    updateFromSliders();
-                });
-            });
-            updateFromSliders();
+                updateFromSliders();
             }
 
             /* ── Conditional LayerNorm block schematic ── */
@@ -1630,7 +1776,7 @@
                 if (!d) return;
                 clnInfo.innerHTML = `<div class="ttl">${d.ttl}</div><div class="head">${d.head}</div><div class="b">${d.body}</div>`;
                 if (window.MathJax && window.MathJax.typesetPromise) {
-                    window.MathJax.typesetPromise([clnInfo]).catch(() => {});
+                    window.MathJax.typesetPromise([clnInfo]).catch(() => { });
                 }
             }
 
@@ -2046,7 +2192,7 @@
                         ensCap.innerHTML = DEFAULT_CAP;
                     }
                     if (window.MathJax && window.MathJax.typesetPromise) {
-                        window.MathJax.typesetPromise([ensCap]).catch(() => {});
+                        window.MathJax.typesetPromise([ensCap]).catch(() => { });
                     }
                 }
 
@@ -2057,7 +2203,7 @@
                 });
 
                 if (window.MathJax && window.MathJax.typesetPromise) {
-                    window.MathJax.typesetPromise([ensCap, ensFlow]).catch(() => {});
+                    window.MathJax.typesetPromise([ensCap, ensFlow]).catch(() => { });
                 }
             }
 
@@ -2076,6 +2222,7 @@
                 'Gneiting & Raftery 2007 — Strictly proper scoring rules',
                 'Moldovan et al. 2025 — AIFS 1.1 (arXiv:2509.18994)',
                 'Lang, Leutbecher, Maciel 2025 — Multi-scale CRPS loss (arXiv:2506.10868)',
+                'Polichtchouk et al. 2026 — Hybrid ensemble forecasting combining physics-based and ML predictions through spectral nudging (arXiv:2603.05570)',
             ];
             const ul = document.getElementById('cites');
             cites.forEach(c => { const li = document.createElement('li'); li.textContent = c; ul.appendChild(li); });
