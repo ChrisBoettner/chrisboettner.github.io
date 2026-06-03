@@ -36,11 +36,13 @@
     <!-- MathJax for LaTeX rendering -->
     <script>
         MathJax = {
+            loader: { load: ['[tex]/boldsymbol'] },
             tex: {
                 inlineMath: [['$', '$']],
                 displayMath: [['$$', '$$']],
                 processEscapes: true,
-                processEnvironments: true
+                processEnvironments: true,
+                packages: { '[+]': ['boldsymbol'] }
             },
             options: {
                 skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
