@@ -676,7 +676,9 @@
 
             <div class="blog-post-content">
 
-                <p><em>Update (2026-06-02): I just finshied follow-up post covering the probabilistic extension of the model - <a href="2026-06-02-aifs_crps_blog_post.html">From Deterministic Weather Forecasts To Ensembles</a>.</em></p>
+                <p><em>Update (2026-06-02): I just finshied follow-up post covering the probabilistic extension of the
+                        model - <a href="2026-06-02-aifs_crps_blog_post.html">From Deterministic Weather Forecasts To
+                            Ensembles</a>.</em></p>
 
                 <p>It feels like, for the past few years, the only things you hear about in AI and machine learning are
                     LLMs and agents, maybe an image or video generation model here and there. And honestly, it's really
@@ -938,10 +940,11 @@
                 <p>The processor is made up of sixteen standard pre-norm transformer layers with multi-head attention.
                     Since the input consists of 40,320 O96 nodes, full self-attention would need to calculate
                     $\mathcal{O}(n^2) \approx 1.6\times10^9$ pairwise interactions per layer per head, which would be
-                    excessively expensive. Instead, the processor uses sliding-window attention along latitude bands
-                    (similar to Longformer, Sparse Transformers, and Mistral's SWA). Sliding window in this case means
-                    that the attention window shifts in each layer, meaning the receptive field grows linearly with
-                    depth. Unlike for LLMs, there is no need for a causal mask. Forecasts attend to
+                    very expensive. Instead, the processor uses sliding-window attention along latitude bands
+                    (similar to Longformer and Mistral's SWA). Each layer attends to a fixed local
+                    window of $\pm w$ nodes. Stacking $L$ such layers lets the information from
+                    previous layers propagate, so that the effective receptive field grows to $\pm (L \cdot w)$.
+                    Unlike for LLMs, there is no need for a causal mask. Forecasts attend to
                     the full atmosphere. The "autoregressive" part of AIFS happens at the
                     rollout level (predicting $t+6h$ from $t$). Within a single forward
                     pass, attention is fully bidirectional in space.</p>
@@ -955,7 +958,7 @@
                 <div class="demo reveal">
                     <div class="demo-head">
                         <div>
-                            <div class="kind">interactive · moswl blocks</div>
+                            <div class="kind">interactive · layer blocks</div>
                             <div class="title">Layer schematic</div>
                         </div>
                         <div class="grid-toggle" id="blockToggle">
@@ -972,7 +975,8 @@
                     </div>
                     <div class="demo-foot">Toggle the block type and click any component to see what it does. The
                         encoder and decoder share the same GNN mapper block (only the direction and connectivity
-                        differ); the processor is a standard pre-norm transformer block, repeated sixteen times. Adapted from Figure 3 of Lang et al. (2024).</div>
+                        differ); the processor is a standard pre-norm transformer block, repeated sixteen times. Adapted
+                        from Figure 3 of Lang et al. (2024).</div>
                 </div>
 
                 <h3 id="Parallelism">Parallelism, Briefly</h3>
@@ -1040,7 +1044,8 @@
                     </tbody>
                 </table>
 
-                <p>The rollout phase deserves a closer look. For each step, we feed the model prediction back in as the next input,</p>
+                <p>The rollout phase deserves a closer look. For each step, we feed the model prediction back in as the
+                    next input,</p>
 
                 <p>$$\hat{x}_{t+6(k+1)} = f_\theta\big(\hat{x}_{t+6(k-1)},\, \hat{x}_{t+6k}\big).$$</p>
 
@@ -1048,9 +1053,9 @@
 
                 <p>$$\mathcal{L}(\theta) = \frac{1}{N}\sum_{k=1}^{N} \ell\big(\hat{x}_{t+6k},\, x_{t+6k}\big),$$</p>
 
-                <p>with $\ell$ being the area-weighted MSE and $N$ being the number of rollout steps. Each state 
-                $\hat{x}_k (\theta) = \hat{x}_{t+6k}$ depends on the previous state $\hat{x}_{k-1} (\theta)$, so 
-                differentiating $\mathcal{L}$ unrolls the chain rule across the whole sequence:</p>
+                <p>with $\ell$ being the area-weighted MSE and $N$ being the number of rollout steps. Each state
+                    $\hat{x}_k (\theta) = \hat{x}_{t+6k}$ depends on the previous state $\hat{x}_{k-1} (\theta)$, so
+                    differentiating $\mathcal{L}$ unrolls the chain rule across the whole sequence:</p>
 
                 <p>$$\frac{\partial \mathcal{L}}{\partial \theta} = \frac{1}{N}\sum_{k=1}^{N}\sum_{j=1}^{k}
                     \frac{\partial \ell_k}{\partial \hat{x}_k}\left(\prod_{i=j+1}^{k}\frac{\partial \hat{x}_i}{\partial
