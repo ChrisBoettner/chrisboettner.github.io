@@ -1500,9 +1500,63 @@
                 },
             };
 
+            function buildAttnMiniMatrix() {
+                const N = 14, W = 3, CELL = 12, STEP = 13;
+                const SZ = N * STEP - 1;
+                let rects = '';
+                for (let q = 0; q < N; q++) {
+                    for (let k = 0; k < N; k++) {
+                        const att = Math.abs(k - q) <= W;
+                        rects += `<rect x="${k * STEP}" y="${q * STEP}" width="${CELL}" height="${CELL}" fill="${att ? 'rgba(14,165,233,0.55)' : '#dde3ea'}" rx="1"/>`;
+                    }
+                }
+                const bs = `font-family:'Fira Code',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:5px 9px;border:1px solid;cursor:pointer;white-space:nowrap;`;
+                return `<div style="margin-top:12px;">
+                    <div style="font-family:'Fira Code',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#94a3b8;margin-bottom:6px;">Attention Matrix</div>
+                    <div style="display:flex;align-items:flex-start;gap:10px;">
+                        <svg id="attnMiniSvg" viewBox="0 0 ${SZ} ${SZ}" width="${SZ}" height="${SZ}" style="display:block;flex-shrink:0;">${rects}</svg>
+                        <div style="display:flex;flex-direction:column;">
+                            <button id="attnBtnSwa" style="${bs}background:#0f172a;color:#fafafa;border-color:#0f172a;border-bottom:0;border-radius:3px 3px 0 0;">Sliding Window Attention</button>
+                            <button id="attnBtnFull" style="${bs}background:#fff;color:#475569;border-color:#cbd5e1;border-radius:0 0 3px 3px;">Full Attention</button>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            function initAttnMiniToggle() {
+                const N = 14, W = 3, CELL = 12, STEP = 13;
+                const svg = document.getElementById('attnMiniSvg');
+                const btnSwa = document.getElementById('attnBtnSwa');
+                const btnFull = document.getElementById('attnBtnFull');
+                let cur = 'swa';
+                function setMode(mode) {
+                    if (mode === cur) return;
+                    cur = mode;
+                    const isSwa = mode === 'swa';
+                    btnSwa.style.background = isSwa ? '#0f172a' : '#fff';
+                    btnSwa.style.color = isSwa ? '#fafafa' : '#475569';
+                    btnSwa.style.borderColor = isSwa ? '#0f172a' : '#cbd5e1';
+                    btnFull.style.background = !isSwa ? '#0f172a' : '#fff';
+                    btnFull.style.color = !isSwa ? '#fafafa' : '#475569';
+                    btnFull.style.borderColor = !isSwa ? '#0f172a' : '#cbd5e1';
+                    let rects = '';
+                    for (let q = 0; q < N; q++) {
+                        for (let k = 0; k < N; k++) {
+                            const att = !isSwa || Math.abs(k - q) <= W;
+                            rects += `<rect x="${k * STEP}" y="${q * STEP}" width="${CELL}" height="${CELL}" fill="${att ? 'rgba(14,165,233,0.55)' : '#dde3ea'}" rx="1"/>`;
+                        }
+                    }
+                    svg.innerHTML = rects;
+                }
+                btnSwa.addEventListener('click', () => setMode('swa'));
+                btnFull.addEventListener('click', () => setMode('full'));
+            }
+
             function updateBinfo(mode, id) {
                 const d = DESC[mode], it = d.items[id] || {};
-                binfo.innerHTML = `<div class="ttl">${d.kind}</div><div class="head">${it.label || ''}</div><div class="b">${it.body || ''}</div>`;
+                const extra = (mode === 'proc' && id === 'attn') ? buildAttnMiniMatrix() : '';
+                binfo.innerHTML = `<div class="ttl">${d.kind}</div><div class="head">${it.label || ''}</div><div class="b">${it.body || ''}</div>${extra}`;
+                if (mode === 'proc' && id === 'attn') initAttnMiniToggle();
             }
             function renderBlock(mode, activeId) {
                 const isProc = mode === 'proc';
